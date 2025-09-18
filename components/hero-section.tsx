@@ -1,58 +1,57 @@
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card"; // Keeping Card import in case it's used elsewhere or for future additions
+import Link from "next/link";
 
 export function HeroSection() {
   return (
-    <section className="px-4 sm:px-6 py-12 sm:py-20 flex flex-col lg:flex-row items-center justify-between max-w-7xl mx-auto">
-      <div className="flex-1 space-y-6 sm:space-y-8 animate-fade-in-left">
-        <div className="space-y-2 sm:space-y-4">
-          <p className="text-accent text-xs sm:text-sm font-medium tracking-wider uppercase animate-fade-in-up delay-100">
-            Ultimate AI Voice Agent
+    <section className="relative overflow-hidden py-16 md:py-24 lg:py-32 bg-background text-foreground">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col lg:flex-row items-center justify-between gap-12">
+        {/* Left Content Block */}
+        <div className="flex-1 text-center lg:text-left space-y-6 md:space-y-8">
+          <p className="text-primary text-sm md:text-base font-medium tracking-wider uppercase">
+            Next-Gen Voice Intelligence
           </p>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight animate-fade-in-up delay-200">
-            <span className="gradient-text">JOIN THE FUTURE OF</span>
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-tight">
+            <span className="gradient-text">Unlock Insights</span>
             <br />
-            <span className="text-white">VOICE AI</span>
+            from Every Conversation
           </h1>
+          <p className="text-muted-foreground text-base md:text-lg max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+            Hynox Vox transforms raw voice data into actionable intelligence,
+            empowering businesses to understand customers, optimize operations,
+            and drive growth.
+          </p>
+          <div className="flex justify-center lg:justify-start space-x-4 pt-4">
+            <Link
+              href="https://www.hynox.in/contact"
+              target="_blank"
+              className="text-muted-foreground hover:text-foreground transition-colors text-sm"
+            >
+              <Button className="cursor-pointer bg-primary text-primary-foreground px-8 py-3 rounded-full text-lg font-semibold hover-scale">
+                Request a Demo
+              </Button>
+            </Link>
+          </div>
         </div>
 
-        <p className="text-muted-foreground text-base sm:text-lg max-w-md leading-relaxed animate-fade-in-up delay-300">
-          Empower your business with Hynox Vox — a multilingual AI voice assistant that listens, understands, and acts
-          in real time.
-        </p>
-
-        <Button className="bg-primary hover:bg-primary/90 text-white px-6 sm:px-8 py-3 rounded-lg neon-glow hover-scale animate-fade-in-up delay-400">
-          Request a Demo
-        </Button>
+        {/* Right Image/Visual Block */}
+        <div className="flex-1 relative mt-12 lg:mt-0 flex justify-center items-center animate-fade-in-right delay-500">
+          <img
+            src="/futuristic-person-with-ai-robot-and-phone-interfac.jpg" // Reusing existing image
+            alt="AI Voice Analytics Technology"
+            className="w-full max-w-md md:max-w-lg lg:max-w-xl rounded-xl shadow-2xl transform rotate-3 hover:rotate-0 transition-transform duration-500 ease-in-out hero-image-redesign animate-float-subtle"
+          />
+          {/* Optional: Add a subtle overlay or interactive element here if needed */}
+          <div className="absolute inset-0 bg-gradient-to-tl from-primary/20 via-transparent to-transparent rounded-xl animate-pulse-slow"></div>
+        </div>
       </div>
 
-      <div className="flex-1 relative mt-8 sm:mt-12 lg:mt-0 animate-fade-in-right delay-300">
-        <div className="relative animate-float">
-          <img
-            src="/futuristic-person-with-ai-robot-and-phone-interfac.jpg"
-            alt="AI Voice Technology"
-            className="w-full max-w-sm sm:max-w-lg mx-auto hero-image hover-scale"
-          />
-
-          <Card className="absolute top-2 sm:top-4 right-2 sm:right-4 p-3 sm:p-4 bg-card/90 backdrop-blur-sm card-glow hover-glow animate-pulse-slow">
-            <div className="text-center space-y-2">
-              <p className="text-primary font-semibold text-sm">JOIN US NOW</p>
-              <p className="text-xs text-muted-foreground">Follow Us</p>
-              <div className="flex space-x-2 justify-center">
-                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-brand-cyan flex items-center justify-center hover-scale">
-                  <span className="text-xs text-white">f</span>
-                </div>
-                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-brand-magenta flex items-center justify-center hover-scale">
-                  <span className="text-xs text-white">t</span>
-                </div>
-                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-brand-green flex items-center justify-center hover-scale">
-                  <span className="text-xs text-white">in</span>
-                </div>
-              </div>
-            </div>
-          </Card>
-        </div>
+      {/* Background elements for visual flair */}
+      <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
+        <div className="absolute top-1/2 right-1/4 w-64 h-64 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
+        <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000"></div>
       </div>
     </section>
-  )
+  );
 }

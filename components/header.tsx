@@ -1,171 +1,171 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { Menu, X, Sun, Moon, ArrowRight } from "lucide-react"
-import { useState, useEffect } from "react"
-import { useTheme } from "@/components/theme-provider"
+import Image from "next/image"; // Import the Image component
+import { Button } from "@/components/ui/button";
+import { Menu, X, Sun, Moon } from "lucide-react";
+import { useState } from "react";
+import { useTheme } from "@/components/theme-provider";
+import { motion } from "framer-motion"; // Added for smooth animations
+import Link from "next/link";
 
 export function Header() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [scrolled, setScrolled] = useState(false)
-  const { theme, toggleTheme } = useTheme()
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
-  // Handle scroll effect for header background
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20)
-    }
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
-
-  // Close mobile menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = () => {
-      if (isMenuOpen) setIsMenuOpen(false)
-    }
-    document.addEventListener('click', handleClickOutside)
-    return () => document.removeEventListener('click', handleClickOutside)
-  }, [isMenuOpen])
+  // Modern color palette inspired by 2025 trends: deep midnight blue, burning red accents, aquamarine for highlights, cream neutrals
+  // Using Tailwind classes with custom variables or extend in config
 
   return (
-    <>
-      <header 
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled 
-            ? 'bg-background/80 backdrop-blur-md border-b border-border/50 shadow-lg' 
-            : 'bg-transparent'
-        }`}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 lg:h-20">
-            
-            {/* Logo Section */}
-            <div className="flex items-center space-x-3 group cursor-pointer">
-              <div className="relative">
-                <div className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-brand-cyan via-brand-magenta to-brand-green bg-clip-text text-transparent">
-                  HVOX
-                </div>
-                <div className="flex space-x-1 mt-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-brand-cyan animate-pulse delay-100 group-hover:scale-125 transition-transform"></div>
-                  <div className="w-1.5 h-1.5 rounded-full bg-brand-magenta animate-pulse delay-200 group-hover:scale-125 transition-transform"></div>
-                  <div className="w-1.5 h-1.5 rounded-full bg-brand-green animate-pulse delay-300 group-hover:scale-125 transition-transform"></div>
-                  <div className="w-1.5 h-1.5 rounded-full bg-brand-yellow animate-pulse delay-400 group-hover:scale-125 transition-transform"></div>
-                </div>
-              </div>
-            </div>
+    <header className="sticky top-0 z-50 w-full bg-background/80 backdrop-blur-md border-b border-border/50 shadow-sm">
+      <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+        <motion.div
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.1 }}
+          className="flex items-center space-x-2"
+        >
+          <Image
+            src="/hynox_logo.jpg"
+            alt="HYNOX Logo"
+            width={32}
+            height={32}
+            className="rounded-full"
+          />
+          <div className="text-2xl font-bold text-foreground hover:text-red-600 transition-colors">
+            HVOX
+          </div>
+          <div className="flex space-x-1">
+            <motion.div
+              className="w-2 h-2 rounded-full bg-red-500"
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ repeat: Infinity, duration: 1.5, delay: 0 }}
+            ></motion.div>
+            <motion.div
+              className="w-2 h-2 rounded-full bg-blue-600"
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ repeat: Infinity, duration: 1.5, delay: 0.3 }}
+            ></motion.div>
+            <motion.div
+              className="w-2 h-2 rounded-full bg-teal-400"
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ repeat: Infinity, duration: 1.5, delay: 0.6 }}
+            ></motion.div>
+            <motion.div
+              className="w-2 h-2 rounded-full bg-yellow-400"
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ repeat: Infinity, duration: 1.5, delay: 0.9 }}
+            ></motion.div>
+          </div>
+        </motion.div>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden lg:flex items-center space-x-8">
-              {[
-                { label: 'Home', href: '#home' },
-                { label: 'About', href: '#about' },
-                { label: 'Services', href: '#services' },
-                { label: 'Portfolio', href: '#portfolio' },
-                { label: 'Contact', href: '#contact' }
-              ].map((item, index) => (
-                <a
-                  key={item.label}
-                  href={item.href}
-                  className="relative text-sm font-medium text-foreground/80 hover:text-foreground transition-all duration-300 group"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  {item.label}
-                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-brand-cyan to-brand-magenta group-hover:w-full transition-all duration-300"></span>
-                </a>
-              ))}
-            </nav>
+        <nav className="hidden md:flex items-center space-x-8">
+          <motion.a
+            href="#"
+            className="text-foreground hover:text-red-600 transition-colors relative group"
+            whileHover={{ y: -2 }}
+          >
+            Home
+            <span className="absolute bottom-0 left-0 w-full h-0.5 bg-red-600 scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></span>
+          </motion.a>
+          <motion.a
+            href="https://www.hynox.in/about"
+            target="_blank"
+            className="text-foreground hover:text-blue-600 transition-colors relative group"
+            whileHover={{ y: -2 }}
+          >
+            About
+            <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></span>
+          </motion.a>
+          <motion.a
+            href="https://www.hynox.in/#services"
+            target="_blank"
+            className="text-foreground hover:text-teal-400 transition-colors relative group"
+            whileHover={{ y: -2 }}
+          >
+            Services
+            <span className="absolute bottom-0 left-0 w-full h-0.5 bg-teal-400 scale-x-0 group-hover:scale-x-100 transition-transform origin-left"></span>
+          </motion.a>
+        </nav>
 
-            {/* Action Buttons */}
-            <div className="flex items-center space-x-3">
-              
-              {/* Theme Toggle */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={toggleTheme}
-                className="p-2 text-foreground/70 hover:text-foreground hover:bg-brand-cyan/10 rounded-xl transition-all duration-300"
-              >
-                {theme === "dark" ? 
-                  <Sun className="h-5 w-5" /> : 
-                  <Moon className="h-5 w-5" />
-                }
-              </Button>
-
-              {/* CTA Button - Desktop */}
-              <Button className="hidden lg:inline-flex items-center space-x-2 bg-gradient-to-r from-brand-cyan to-brand-magenta hover:from-brand-magenta hover:to-brand-cyan text-white px-6 py-2.5 rounded-xl shadow-lg hover:shadow-brand-cyan/25 transition-all duration-300 group">
-                <span className="font-medium">Join Now</span>
-                <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
-              </Button>
-
-              {/* Mobile Menu Toggle */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setIsMenuOpen(!isMenuOpen)
-                }}
-                className="lg:hidden p-2 text-foreground hover:bg-brand-cyan/10 rounded-xl transition-all duration-300"
-              >
-                <div className="relative w-6 h-6">
-                  <span className={`absolute inset-0 transition-all duration-300 ${
-                    isMenuOpen ? 'rotate-45 translate-y-0' : 'rotate-0 -translate-y-2'
-                  }`}>
-                    <Menu className="h-6 w-6" />
-                  </span>
-                  <span className={`absolute inset-0 transition-all duration-300 ${
-                    isMenuOpen ? '-rotate-45 translate-y-0' : 'rotate-0 translate-y-2'
-                  }`}>
-                    <X className="h-6 w-6" />
-                  </span>
-                </div>
-              </Button>
-            </div>
+        <div className="flex items-center space-x-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleTheme}
+            className="text-foreground hover:bg-accent/20 transition-colors"
+          >
+            {theme === "dark" ? (
+              <Sun className="h-5 w-5" />
+            ) : (
+              <Moon className="h-5 w-5" />
+            )}
+          </Button>
+          <Link
+            href="https://www.hynox.in/contact"
+            target="_blank"
+            className="text-muted-foreground hover:text-foreground transition-colors text-sm"
+          >
+            <Button className="hidden md:block bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-full shadow-lg hover:shadow-red-500/50 transition-all">
+              Join Now
+            </Button>
+          </Link>
+          <div className="md:hidden">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="text-foreground hover:text-red-600"
+            >
+              {isMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
+            </Button>
           </div>
         </div>
+      </div>
 
-        {/* Mobile Navigation Menu */}
-        <div className={`lg:hidden transition-all duration-300 ${
-          isMenuOpen 
-            ? 'max-h-96 opacity-100' 
-            : 'max-h-0 opacity-0 pointer-events-none'
-        } overflow-hidden bg-background/95 backdrop-blur-lg border-t border-border/50`}>
-          <nav className="max-w-7xl mx-auto px-4 py-6">
-            <div className="flex flex-col space-y-4">
-              {[
-                { label: 'Home', href: '#home' },
-                { label: 'About', href: '#about' },
-                { label: 'Services', href: '#services' },
-                { label: 'Portfolio', href: '#portfolio' },
-                { label: 'Contact', href: '#contact' }
-              ].map((item, index) => (
-                <a
-                  key={item.label}
-                  href={item.href}
-                  onClick={() => setIsMenuOpen(false)}
-                  className="text-lg font-medium text-foreground/80 hover:text-brand-cyan transition-colors duration-300 py-2 border-b border-border/20 last:border-0"
-                  style={{ animationDelay: `${index * 50}ms` }}
-                >
-                  {item.label}
-                </a>
-              ))}
-              
-              {/* Mobile CTA Button */}
-              <Button 
-                className="mt-4 w-full bg-gradient-to-r from-brand-cyan to-brand-magenta hover:from-brand-magenta hover:to-brand-cyan text-white py-3 rounded-xl shadow-lg transition-all duration-300"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <span className="font-medium">Join Now</span>
-                <ArrowRight className="ml-2 h-4 w-4" />
+      {isMenuOpen && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          className="md:hidden bg-background/95 backdrop-blur-md border-t border-border"
+        >
+          <nav className="flex flex-col space-y-4 p-4 text-center">
+            <a
+              href="#"
+              className="text-foreground hover:text-red-600 transition-colors py-2"
+            >
+              Home
+            </a>
+            <a
+              href="https://www.hynox.in/about"
+              target="_blank"
+              className="text-foreground hover:text-blue-600 transition-colors py-2"
+            >
+              About
+            </a>
+            <a
+              href="https://www.hynox.in/#services"
+              target="_blank"
+              className="text-foreground hover:text-teal-400 transition-colors py-2"
+            >
+              Services
+            </a>
+            <Link
+              href="https://www.hynox.in/contact"
+              target="_blank"
+              className="text-muted-foreground hover:text-foreground transition-colors text-sm"
+            >
+              <Button className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-full shadow-lg hover:shadow-red-500/50 transition-all">
+                Join Now
               </Button>
-            </div>
+            </Link>
           </nav>
-        </div>
-      </header>
-
-      {/* Spacer to prevent content overlap */}
-      <div className="h-16 lg:h-20"></div>
-    </>
-  )
+        </motion.div>
+      )}
+    </header>
+  );
 }
