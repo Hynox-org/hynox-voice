@@ -13,7 +13,10 @@ const instrument_sans = Instrument_Sans({
 export const metadata: Metadata = {
   title: "HVOX - Ultimate AI Voice Agent",
   description: "Join the future of voice AI with HVOX",
-    generator: 'v0.app'
+  generator: 'v0.app',
+  icons: {
+    icon: '/hynox_logo.jpg',
+  },
 }
 
 export default function RootLayout({
