@@ -11,7 +11,7 @@ const instrument_sans = Instrument_Sans({
 })
 
 export const metadata: Metadata = {
-  title: "HVOX - Ultimate AI Voice Agent",
+  title: "HYNOX Voice - Ultimate AI Voice Assistant",
   description: "Join the future of voice AI with HVOX",
   generator: 'v0.app',
   icons: {

@@ -33,7 +33,7 @@ export function Header() {
             className="rounded-full"
           />
           <div className="text-2xl font-bold text-foreground hover:text-red-600 transition-colors">
-            HVOX
+            Voice
           </div>
           <div className="flex space-x-1">
             <motion.div
@@ -47,7 +47,7 @@ export function Header() {
               transition={{ repeat: Infinity, duration: 1.5, delay: 0.3 }}
             ></motion.div>
             <motion.div
-              className="w-2 h-2 rounded-full bg-teal-400"
+              className="w-2 h-2 rounded-full bg-green-800"
               animate={{ scale: [1, 1.2, 1] }}
               transition={{ repeat: Infinity, duration: 1.5, delay: 0.6 }}
             ></motion.div>
