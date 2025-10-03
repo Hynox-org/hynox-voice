@@ -15,12 +15,14 @@ type ThemeProviderContextType = {
 const ThemeProviderContext = createContext<ThemeProviderContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("dark") // Default to dark theme as requested
+  const [theme, setTheme] = useState<Theme>("light") // Default to light theme as requested
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("hvox-theme") as Theme
     if (savedTheme) {
       setTheme(savedTheme)
+    } else {
+      setTheme("light") // Ensure light theme is set if no theme is saved
     }
   }, [])
 

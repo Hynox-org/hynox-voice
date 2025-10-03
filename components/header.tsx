@@ -4,14 +4,11 @@ import Image from "next/image"; // Import the Image component
 import { Button } from "@/components/ui/button";
 import { Menu, X, Sun, Moon } from "lucide-react";
 import { useState } from "react";
-import { useTheme } from "@/components/theme-provider";
 import { motion } from "framer-motion"; // Added for smooth animations
 import Link from "next/link";
-import { DarkModeSwitch } from 'react-toggle-dark-mode';
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { theme, toggleTheme } = useTheme();
 
   // Modern color palette inspired by 2025 trends: deep midnight blue, burning red accents, aquamarine for highlights, cream neutrals
   // Using Tailwind classes with custom variables or extend in config
@@ -89,24 +86,6 @@ export function Header() {
         </nav>
 
         <div className="flex items-center space-x-4">
-            {/* <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleTheme}
-              className="text-foreground hover:bg-accent/20 transition-colors"
-            >
-              {theme === "dark" ? (
-                <Sun className="h-5 w-5" />
-              ) : (
-                <Moon className="h-5 w-5" />
-              )}
-            </Button> */}
-            <DarkModeSwitch
-      // style={{ marginBottom: '2rem' }}
-      checked={theme === 'dark'}
-      onChange={toggleTheme}
-      size={30}
-    />
           <Link
             href="https://www.hynox.in/contact"
             target="_blank"
