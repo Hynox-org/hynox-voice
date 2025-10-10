@@ -1,22 +1,17 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { ArrowIcon } from "@/components/icons"
+import { ArrowIcon, MicIcon } from "@/components/icons"
 import { cn } from "@/lib/utils"
-import { HynoxVoiceButton } from "./hynox-voice-button"
 
 export function InputBar({
   onSend,
   onMicToggle,
   listening,
-  wakeWordEnabled,
-  onWakeWordToggle,
 }: {
   onSend: (text: string) => void
-  onMicToggle: (active: boolean) => void
+  onMicToggle: () => void
   listening: boolean
-  wakeWordEnabled: boolean
-  onWakeWordToggle: (v: boolean) => void
 }) {
   const [text, setText] = useState("")
   const inputRef = useRef<HTMLInputElement>(null)
@@ -62,15 +57,23 @@ export function InputBar({
             <ArrowIcon />
           </button>
 
-          <HynoxVoiceButton
-            active={listening}
-            onToggle={() => onMicToggle(!listening)}
-            wakeWordEnabled={wakeWordEnabled}
-            onWakeWordToggle={onWakeWordToggle}
-          />
+          <button
+            type="button"
+            onClick={onMicToggle}
+            className={cn(
+              "size-10 rounded-full flex items-center justify-center transition-colors",
+              listening
+                ? "bg-red-500 text-white hover:bg-red-600 glow-red"
+                : "bg-muted text-muted-foreground hover:bg-muted/80"
+            )}
+            aria-label={listening ? "Stop listening" : "Start listening"}
+            title={listening ? "Stop listening" : "Start listening"}
+          >
+            <MicIcon size={20} />
+          </button>
         </div>
       </div>
-      <p className="mt-2 text-center text-xs text-foreground/60">Press Enter to send • Use Hynox Voice to speak</p>
+      <p className="mt-2 text-center text-xs text-foreground/60">Press Enter to send • Tap mic to speak</p>
     </div>
   )
 }

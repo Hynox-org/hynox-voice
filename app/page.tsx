@@ -265,6 +265,7 @@ export default function Home() {
         <StreamingSection />
         <FeaturesSection />
         <WhyChooseSection />
+        <SiteFooter/>
       </div>
     </main>
   )

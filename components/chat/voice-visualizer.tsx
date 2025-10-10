@@ -1,92 +1,166 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import React, { useEffect, useRef, useState } from "react"
+import { cn } from "@/lib/utils"
 
-export function VoiceVisualizer({
-  stream,
-  listening,
-}: {
+export function VoiceVisualizer({ 
+  stream, 
+  listening 
+}: { 
   stream: MediaStream | null
-  listening: boolean
+  listening: boolean 
 }) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null)
-  const rafRef = useRef<number | null>(null)
-  const audioCtxRef = useRef<AudioContext | null>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const animationFrameId = useRef<number | null>(null)
+  const audioContextRef = useRef<AudioContext | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
+  const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null)
+  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
-    if (!listening || !stream) {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current)
-      const ctx = canvasRef.current?.getContext("2d")
-      if (ctx && canvasRef.current) {
-        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
+    setIsMounted(true)
+    return () => {
+      setIsMounted(false)
+      if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current)
+      if (audioContextRef.current) audioContextRef.current.close()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isMounted || !listening || !stream) {
+      // Clean up visualization
+      if (animationFrameId.current) {
+        cancelAnimationFrame(animationFrameId.current)
+        animationFrameId.current = null
+      }
+      if (sourceRef.current) {
+        sourceRef.current.disconnect()
+        sourceRef.current = null
+      }
+      if (canvasRef.current) {
+        const ctx = canvasRef.current.getContext("2d")
+        if (ctx) ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
       }
       return
     }
 
-    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
-    const audioCtx = new AudioCtx()
-    audioCtxRef.current = audioCtx
+    // Initialize audio context
+    if (!audioContextRef.current) {
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
+    }
 
-    const source = audioCtx.createMediaStreamSource(stream)
-    const analyser = audioCtx.createAnalyser()
-    analyser.fftSize = 256
-    source.connect(analyser)
-    analyserRef.current = analyser
+    // Create analyzer with optimized settings
+    if (!analyserRef.current) {
+      analyserRef.current = audioContextRef.current.createAnalyser()
+      analyserRef.current.fftSize = 128 // Smaller for minimalist look
+      analyserRef.current.smoothingTimeConstant = 0.8 // Smoother transitions
+    }
 
-    const bufferLength = analyser.frequencyBinCount
+    // Connect audio source
+    if (sourceRef.current) sourceRef.current.disconnect()
+    sourceRef.current = audioContextRef.current.createMediaStreamSource(stream)
+    sourceRef.current.connect(analyserRef.current)
+
+    const canvas = canvasRef.current
+    const ctx = canvas?.getContext("2d")
+
+    if (!canvas || !ctx) return
+
+    const bufferLength = analyserRef.current.frequencyBinCount
     const dataArray = new Uint8Array(bufferLength)
+    const barCount = 32 // Fixed number of bars for clean look
 
-    const canvas = canvasRef.current!
-    const ctx = canvas.getContext("2d")!
+    const draw = () => {
+      if (!listening || !isMounted) return
 
-    const render = () => {
-      rafRef.current = requestAnimationFrame(render)
-      analyser.getByteFrequencyData(dataArray)
+      animationFrameId.current = requestAnimationFrame(draw)
+      analyserRef.current!.getByteFrequencyData(dataArray)
 
-      const width = canvas.width
-      const height = canvas.height
-      ctx.clearRect(0, 0, width, height)
+      // Clear with fade effect
+      ctx.fillStyle = "rgba(17, 17, 17, 0.3)"
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-      const barCount = 48
-      const step = Math.floor(bufferLength / barCount)
-      const barWidth = (width / barCount) * 0.6
-      const gap = (width / barCount) * 0.4
+      const barWidth = canvas.width / barCount
+      const gap = 2
 
       for (let i = 0; i < barCount; i++) {
-        const v = dataArray[i * step] / 255
-        const barHeight = Math.max(4, v * height)
-        const x = i * (barWidth + gap)
-        const y = height - barHeight
+        // Sample frequency data evenly across spectrum
+        const dataIndex = Math.floor((i * bufferLength) / barCount)
+        const value = dataArray[dataIndex] || 0
+        
+        // Normalize and scale
+        const barHeight = (value / 255) * canvas.height * 0.9
+        const x = i * barWidth
+        const y = canvas.height - barHeight
 
-        // Cyan/blue gradient bars using tokens
-        ctx.fillStyle =
-          getComputedStyle(document.documentElement).getPropertyValue("--brand-bars") || "rgba(0, 212, 255, 0.8)"
-        ctx.fillRect(x, y, barWidth, barHeight)
+        // Create gradient for each bar
+        const gradient = ctx.createLinearGradient(x, canvas.height, x, y)
+        gradient.addColorStop(0, "rgba(99, 102, 241, 0.8)") // Indigo base
+        gradient.addColorStop(0.5, "rgba(139, 92, 246, 0.9)") // Purple mid
+        gradient.addColorStop(1, "rgba(196, 181, 253, 1)") // Light purple top
+
+        // Draw rounded bars
+        ctx.fillStyle = gradient
+        ctx.beginPath()
+        ctx.roundRect(
+          x + gap / 2, 
+          y, 
+          barWidth - gap, 
+          barHeight,
+          [4, 4, 0, 0] // Rounded top corners only
+        )
+        ctx.fill()
       }
     }
 
-    render()
+    draw()
 
     return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current)
-      try {
-        audioCtxRef.current?.close()
-      } catch {}
+      if (animationFrameId.current) {
+        cancelAnimationFrame(animationFrameId.current)
+        animationFrameId.current = null
+      }
+      if (sourceRef.current) {
+        sourceRef.current.disconnect()
+        sourceRef.current = null
+      }
     }
-  }, [listening, stream])
+  }, [listening, stream, isMounted])
 
   return (
-    <div className="w-full">
-      <div className="mx-auto max-w-2xl rounded-xl border border-border/60 bg-background/40 px-2 py-2 glow-muted">
-        <canvas
-          ref={canvasRef}
-          className="block w-full h-16 sm:h-20"
-          width={800}
-          height={120}
-          aria-label="Voice visualizer"
-        />
-      </div>
+    <div
+      className={cn(
+        "relative w-full h-20 rounded-2xl overflow-hidden",
+        "bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900",
+        "border border-slate-700/50",
+        "shadow-lg shadow-indigo-500/10",
+        "transition-all duration-500 ease-out",
+        listening 
+          ? "opacity-100 scale-100 shadow-indigo-500/30" 
+          : "opacity-0 scale-95 pointer-events-none"
+      )}
+    >
+      {/* Subtle grid background */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f15_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f15_1px,transparent_1px)] bg-[size:14px_24px]" />
+      
+      {/* Glow effect */}
+      <div className="absolute inset-0 bg-gradient-to-t from-indigo-500/5 to-transparent" />
+      
+      {/* Canvas */}
+      <canvas 
+        ref={canvasRef} 
+        width="600" 
+        height="80" 
+        className="relative z-10 w-full h-full"
+      />
+      
+      {/* Listening indicator */}
+      {listening && (
+        <div className="absolute top-3 right-3 flex items-center gap-2 z-20">
+          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-lg shadow-emerald-400/50" />
+          <span className="text-xs font-medium text-slate-300 tracking-wide">LISTENING</span>
+        </div>
+      )}
     </div>
   )
 }

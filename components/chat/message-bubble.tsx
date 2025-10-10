@@ -27,7 +27,7 @@ export function MessageBubble({
     >
       {!isUser && (
         <div className="size-8 rounded-full bg-accent/15 ring-1 ring-border/60 text-accent flex items-center justify-center shrink-0">
-          <BotIcon size={16} />
+          <BotIcon size={20} color="black"/>
         </div>
       )}
 
