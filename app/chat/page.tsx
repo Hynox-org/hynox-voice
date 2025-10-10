@@ -1,11 +1,19 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
-import { ChatWindow } from "@/components/chat/chat-window"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { DatabaseConnectionModal } from "@/components/chat/database-connection-modal"
+import { MessageBubble } from "@/components/chat/message-bubble"
+import { VoiceVisualizer } from "@/components/chat/voice-visualizer"
 import { Button } from "@/components/ui/button"
-import { ExcelIcon } from "@/components/icons"
+import { ExcelIcon, ArrowIcon, MicIcon } from "@/components/icons"
 import { createClient } from "@supabase/supabase-js"
+import { cn } from "@/lib/utils"
+
+export type Message = {
+  id: string
+  role: "user" | "assistant"
+  content: string
+}
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -19,6 +27,39 @@ export default function Page() {
   const [fileName, setFileName] = useState<string | null>(null)
   const [isRemoving, setIsRemoving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: "welcome",
+      role: "assistant",
+      content: "Hello! I'm Hynox. Ask me anything, or tap the mic and speak. I'll reply here.",
+    },
+  ])
+  const [listening, setListening] = useState(false)
+  const [stream, setStream] = useState<MediaStream | null>(null)
+  const [text, setText] = useState("") // State for input bar
+  const inputRef = useRef<HTMLInputElement>(null) // Ref for input bar
+  const scrollRef = useRef<HTMLDivElement | null>(null) // Ref for chat window scroll
+
+  const recognitionRef = useRef<any>(null)
+  const interimTranscriptRef = useRef<string>("")
+
+  // Dynamic viewport height fix for mobile browsers (handles address bar issues)
+  useEffect(() => {
+    const updateViewportHeight = () => {
+      const vh = window.innerHeight * 0.01
+      document.documentElement.style.setProperty("--vh", `${vh}px`)
+    }
+
+    updateViewportHeight()
+    window.addEventListener("resize", updateViewportHeight)
+    window.addEventListener("orientationchange", updateViewportHeight)
+
+    return () => {
+      window.removeEventListener("resize", updateViewportHeight)
+      window.removeEventListener("orientationchange", updateViewportHeight)
+    }
+  }, [])
 
   // Check for existing connection on mount
   useEffect(() => {
@@ -39,6 +80,169 @@ export default function Page() {
       setIsModalOpen(true)
     }
   }, [])
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (scrollRef.current) {
+      const scrollBehavior = messages.length > 2 ? "smooth" : "auto"
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: scrollBehavior,
+      })
+    }
+  }, [messages])
+
+  // Focus input bar when not listening
+  useEffect(() => {
+    if (!listening) inputRef.current?.focus()
+  }, [listening])
+
+  const addMessage = useCallback((role: "user" | "assistant", content: string) => {
+    setMessages((prev) => [...prev, { id: crypto.randomUUID(), role, content }])
+  }, [])
+
+  const speakText = useCallback((text: string) => {
+    try {
+      if ("speechSynthesis" in window) {
+        speechSynthesis.cancel() // Cancel any ongoing speech
+        const utter = new SpeechSynthesisUtterance(text)
+        utter.rate = 1
+        utter.pitch = 1
+        utter.volume = 1
+        speechSynthesis.speak(utter)
+      }
+    } catch (error) {
+      console.warn("Speech synthesis not supported:", error)
+    }
+  }, [])
+
+  const stopListening = useCallback(async () => {
+    setListening(false)
+    
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.onresult = null
+        recognitionRef.current.onend = null
+        recognitionRef.current.onerror = null
+        recognitionRef.current.stop()
+      } catch (error) {
+        console.warn("Error stopping recognition:", error)
+      }
+      recognitionRef.current = null
+    }
+
+    if (stream) {
+      stream.getTracks().forEach((track) => track.stop())
+      setStream(null)
+    }
+  }, [stream])
+
+  const startListening = useCallback(async () => {
+    if (listening) {
+      await stopListening()
+      return
+    }
+
+    // Request microphone access for visualizer
+    try {
+      const media = await navigator.mediaDevices.getUserMedia({ audio: true })
+      setStream(media)
+    } catch (error) {
+      console.warn("Microphone access denied or unavailable:", error)
+    }
+
+    const SpeechRecognition: any =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+
+    if (!SpeechRecognition) {
+      // Fallback: Show visualizer briefly if speech recognition not available
+      setListening(true)
+      setTimeout(() => {
+        setListening(false)
+        addMessage("assistant", "Speech recognition is not supported on this browser. Please type your message instead.")
+      }, 1500)
+      return
+    }
+
+    const recognition = new SpeechRecognition()
+    recognition.lang = "en-US"
+    recognition.interimResults = true
+    recognition.continuous = false
+    recognition.maxAlternatives = 1
+
+    interimTranscriptRef.current = ""
+
+    recognition.onresult = (event: any) => {
+      let interim = ""
+      let finalText = ""
+      
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i]
+        if (result.isFinal) {
+          finalText += result[0].transcript
+        } else {
+          interim += result[0].transcript
+        }
+      }
+      
+      interimTranscriptRef.current = (finalText || interim).trim()
+    }
+
+    recognition.onend = () => {
+      const userText = interimTranscriptRef.current.trim()
+      
+      if (userText) {
+        addMessage("user", userText)
+        
+        // Simulate assistant response (replace with actual API call)
+        setTimeout(() => {
+          addMessage("assistant", `You said: "${userText}". This is a sample response.`)
+          speakText(`You said: ${userText}. This is a sample response.`)
+        }, 600)
+      }
+      
+      stopListening()
+    }
+
+    recognition.onerror = (event: any) => {
+      console.error("Speech recognition error:", event.error)
+      
+      if (event.error === "no-speech") {
+        addMessage("assistant", "No speech detected. Please try again.")
+      } else if (event.error === "network") {
+        addMessage("assistant", "Network error. Please check your connection.")
+      }
+      
+      stopListening()
+    }
+
+    recognitionRef.current = recognition
+    setListening(true)
+
+    try {
+      recognition.start()
+    } catch (error) {
+      console.error("Failed to start recognition:", error)
+      stopListening()
+    }
+  }, [addMessage, listening, stopListening, speakText])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop()
+        } catch {}
+      }
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop())
+      }
+      if ("speechSynthesis" in window) {
+        speechSynthesis.cancel()
+      }
+    }
+  }, [stream])
 
   const handleConnect = useCallback((url: string) => {
     const name = url.split("/").pop()?.split("?")[0]
@@ -93,6 +297,20 @@ export default function Page() {
     await handleRemoveConnection()
   }, [handleRemoveConnection])
 
+  const handleSend = () => {
+    const v = text.trim()
+    if (!v) return
+    addMessage("user", v)
+    console.log("Chat Context:", v, "File URL:", fileUrl)
+    
+    // Simulate assistant response (replace with actual API call)
+    setTimeout(() => {
+      addMessage("assistant", `Got it: "${v}". How can I help further?`)
+      speakText(`Got it: ${v}. This is a sample response.`)
+    }, 500)
+    setText("")
+  }
+
   return (
     <main 
       className="
@@ -104,7 +322,7 @@ export default function Page() {
         minHeight: "calc(var(--vh, 1vh) * 100)",
       }}
     >
-      <section className="flex-1 flex items-stretch">
+      <section className="flex-1 flex items-stretch pb-[120px]">
         <div 
           className="
             mx-auto 
@@ -116,21 +334,22 @@ export default function Page() {
             gap-3 sm:gap-4
           "
         >
-          {/* Connection Status Card - Mobile Optimized */}
           {isConnected && fileUrl && fileName && (
             <div 
               className="
-                flex flex-col sm:flex-row 
+                sticky top-20 
+                z-10 
+                w-full 
+                flex flex-row
                 sm:items-center sm:justify-between 
                 gap-3 sm:gap-4
-                p-3 sm:p-4 
+                p-30 sm:p-4 
                 border rounded-lg sm:rounded-xl 
                 shadow-sm 
                 bg-white dark:bg-gray-800
                 transition-all duration-200
               "
             >
-              {/* File Info Section */}
               <div className="flex items-center gap-3 min-w-0 flex-1">
                 <div className="flex-shrink-0">
                   <ExcelIcon 
@@ -156,7 +375,6 @@ export default function Page() {
                 </div>
               </div>
 
-              {/* Action Buttons - Mobile Responsive */}
               <div 
                 className="
                   flex 
@@ -192,7 +410,6 @@ export default function Page() {
             </div>
           )}
 
-          {/* Error Message - Mobile Optimized */}
           {error && (
             <div 
               className="
@@ -212,20 +429,124 @@ export default function Page() {
 
           {/* Chat Window - Full Height on Mobile */}
           <div 
+            ref={scrollRef}
             className="
               flex-1 
-              w-full
-              rounded-xl sm:rounded-2xl
-              overflow-hidden
+              overflow-y-auto 
+              overflow-x-hidden
+              px-3 sm:px-4 md:px-6
+              py-3 sm:py-4
+              rounded-xl md:rounded-2xl 
+              border border-border/60 
+              bg-background/40 
+              glow-muted
+              overscroll-behavior-contain
+              -webkit-overflow-scrolling-touch
             "
             style={{
-              minHeight: "calc(var(--vh, 1vh) * 60)",
+              minHeight: "60vh",
+              maxHeight: "calc(100% - 120px)", /* Adjusted to account for input bar outside */
             }}
           >
-            <ChatWindow fileUrl={fileUrl} />
+            <div 
+              className="
+                mx-auto 
+                w-full 
+                max-w-3xl 
+                py-2 md:py-3 
+                flex flex-col 
+                gap-3 md:gap-4
+              "
+            >
+              {messages.map((m) => (
+                <MessageBubble 
+                  key={m.id} 
+                  message={m} 
+                  onSpeak={speakText} 
+                />
+              ))}
+            </div>
           </div>
         </div>
       </section>
+
+      {/* Voice visualizer - shown when listening */}
+      {listening && (
+        <div className="py-3 md:py-4 px-4 sm:px-6 md:px-8 fixed bottom-[100px] left-0 right-0 z-20 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:backdrop-blur-lg">
+          <VoiceVisualizer 
+            stream={stream} 
+            listening={listening} 
+          />
+        </div>
+      )}
+
+      {/* Input bar - sticky bottom with safe area support */}
+      <div
+        className="
+          fixed 
+          bottom-0 
+          left-0 
+          right-0
+          z-10
+          bg-background/80 
+          backdrop-blur-md 
+          supports-[backdrop-filter]:backdrop-blur-lg
+          border-t border-border/40
+          pt-3 sm:pt-4
+          px-4 sm:px-6 md:px-8
+        "
+        style={{
+          paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + 12px)`,
+        }}
+      >
+        <div className="w-full max-w-3xl mx-auto">
+          <div className="flex items-center gap-2 rounded-2xl border border-border/60 bg-background/60 p-2 ring-1 ring-inset ring-border/30 glow-muted">
+            <input
+              ref={inputRef}
+              className={cn("flex-1 bg-transparent px-3 py-2 text-sm outline-none", "placeholder:text-foreground/50")}
+              type="text"
+              placeholder="Type your message…"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault()
+                  handleSend()
+                }
+              }}
+              aria-label="Message input"
+            />
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleSend}
+                className="inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm font-medium bg-primary text-primary-foreground hover:opacity-90 transition-opacity glow-brand"
+                aria-label="Send message"
+                title="Send"
+              >
+                <ArrowIcon />
+              </button>
+
+              <button
+                type="button"
+                onClick={startListening}
+                className={cn(
+                  "size-10 rounded-full flex items-center justify-center transition-colors",
+                  listening
+                    ? "bg-red-500 text-white hover:bg-red-600 glow-red"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                )}
+                aria-label={listening ? "Stop listening" : "Start listening"}
+                title={listening ? "Stop listening" : "Start listening"}
+              >
+                <MicIcon size={20} />
+              </button>
+            </div>
+          </div>
+          <p className="mt-2 text-center text-xs text-foreground/60">Press Enter to send • Tap mic to speak</p>
+        </div>
+      </div>
 
       {/* Database Connection Modal - Mobile Optimized */}
       <DatabaseConnectionModal
