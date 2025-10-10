@@ -58,7 +58,7 @@ export function Header() {
 
         <nav className="hidden md:flex items-center space-x-8">
           <motion.a
-            href="#"
+            href="/"
             className="text-foreground hover:text-red-600 transition-colors relative group"
             whileHover={{ y: -2 }}
           >
@@ -91,7 +91,7 @@ export function Header() {
             target="_blank"
             className="text-muted-foreground hover:text-foreground transition-colors text-sm"
           >
-            <Button className="hidden md:block bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-full shadow-lg hover:shadow-red-500/50 transition-all">
+            <Button className="hidden cursor-pointer md:block bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-full shadow-lg hover:shadow-red-500/50 transition-all">
               Join Now
             </Button>
           </Link>
@@ -145,7 +145,7 @@ export function Header() {
               target="_blank"
               className="text-muted-foreground hover:text-foreground transition-colors text-sm"
             >
-              <Button className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-full shadow-lg hover:shadow-red-500/50 transition-all">
+              <Button className="bg-red-600 cursor-pointer hover:bg-red-700 text-white px-6 py-2 rounded-full shadow-lg hover:shadow-red-500/50 transition-all">
                 Join Now
               </Button>
             </Link>

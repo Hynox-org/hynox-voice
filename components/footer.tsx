@@ -25,7 +25,7 @@ export function SiteFooter() {
                 height={32}
                 className="rounded-full"
               />
-              <span className="text-2xl font-bold text-foreground">Campus</span>
+              <span className="text-2xl font-bold text-foreground">Voice</span>
             </Link>
             <p className="text-muted-foreground text-sm max-w-md">
               Transforming conversations into actions with intelligent transcription, natural language understanding, and CRM integration.

@@ -4,41 +4,30 @@ import type React from "react"
 
 import { createContext, useContext, useEffect, useState } from "react"
 
-type Theme = "dark" | "light"
+type Theme = "light"
 
 type ThemeProviderContextType = {
   theme: Theme
-  setTheme: (theme: Theme) => void
-  toggleTheme: () => void
 }
 
 const ThemeProviderContext = createContext<ThemeProviderContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("light") // Default to light theme as requested
+  const [theme, setTheme] = useState<Theme>("light")
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem("hvox-theme") as Theme
-    if (savedTheme) {
-      setTheme(savedTheme)
-    } else {
-      setTheme("light") // Ensure light theme is set if no theme is saved
-    }
+    setTheme("light") // Always enforce light theme
   }, [])
 
   useEffect(() => {
     const root = window.document.documentElement
     root.classList.remove("light", "dark")
     root.classList.add(theme)
-    localStorage.setItem("hvox-theme", theme)
+    localStorage.setItem("hvox-theme", theme) // Still store for consistency, but it will always be 'light'
   }, [theme])
 
-  const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark")
-  }
-
   return (
-    <ThemeProviderContext.Provider value={{ theme, setTheme, toggleTheme }}>{children}</ThemeProviderContext.Provider>
+    <ThemeProviderContext.Provider value={{ theme }}>{children}</ThemeProviderContext.Provider>
   )
 }
 

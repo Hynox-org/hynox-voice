@@ -4,6 +4,8 @@ import { Instrument_Sans } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Analytics } from "@vercel/analytics/next"
+import { Header } from "@/components/header"
+import { SiteFooter } from "@/components/footer"
 
 const instrument_sans = Instrument_Sans({
   subsets: ["latin"],
@@ -25,10 +27,12 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${instrument_sans.variable} antialiased dark`}>
+    <html lang="en" className={`${instrument_sans.variable} antialiased light`}>
       <body>
+        <Header />
         <ThemeProvider>{children}</ThemeProvider>
         <Analytics />
+        <SiteFooter/>
       </body>
     </html>
   )

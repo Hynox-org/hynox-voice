@@ -25,28 +25,14 @@ export function HeroSection() {
             and drive growth.
           </p>
           <div className="flex justify-center lg:justify-start space-x-4 pt-4">
-            <Link
-              href="https://www.hynox.in/contact"
-              target="_blank"
-              className="text-muted-foreground hover:text-foreground transition-colors text-sm"
-            >
+            <Link href="/chat">
               <Button className="cursor-pointer bg-primary text-primary-foreground px-8 py-3 rounded-full text-lg font-semibold hover-scale">
-                Request a Demo
+                Start Chatting
               </Button>
             </Link>
           </div>
         </div>
 
-        {/* Right Image/Visual Block */}
-        <div className="flex-1 relative mt-12 lg:mt-0 flex justify-center items-center animate-fade-in-right delay-500">
-          <img
-            src="/futuristic-person-with-ai-robot-and-phone-interfac.jpg" // Reusing existing image
-            alt="AI Voice Analytics Technology"
-            className="w-full max-w-md md:max-w-lg lg:max-w-xl rounded-xl shadow-2xl transform rotate-3 hover:rotate-0 transition-transform duration-500 ease-in-out hero-image-redesign animate-float-subtle"
-          />
-          {/* Optional: Add a subtle overlay or interactive element here if needed */}
-          <div className="absolute inset-0 bg-gradient-to-tl from-primary/20 via-transparent to-transparent rounded-xl animate-pulse-slow"></div>
-        </div>
       </div>
 
       {/* Background elements for visual flair */}
@@ -274,13 +260,11 @@ export function WhyChooseSection() {
 export default function Home() {
   return (
     <main className="min-h-screen bg-background">
-              <Header />
       <div className="relative overflow-hidden">
         <HeroSection />
         <StreamingSection />
         <FeaturesSection />
         <WhyChooseSection />
-        <SiteFooter />
       </div>
     </main>
   )
