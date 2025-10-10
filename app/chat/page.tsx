@@ -193,7 +193,15 @@ export default function Page() {
       
       if (userText) {
         addMessage("user", userText)
+
+        if (!isConnected) {
+          setIsModalOpen(true)
+          addMessage("assistant", "Please connect a database to submit your query.")
+          stopListening()
+          return
+        }
         
+        console.log("Chat Context:", userText, "File URL:", fileUrl)
         setTimeout(() => {
           addMessage("assistant", `You said: "${userText}". This is a sample response.`)
           speakText(`You said: ${userText}. This is a sample response.`)
@@ -295,6 +303,12 @@ export default function Page() {
   const handleSend = () => {
     const v = text.trim()
     if (!v || isSending) return
+
+    if (!isConnected) {
+      setIsModalOpen(true)
+      addMessage("assistant", "Please connect a database to submit your query.")
+      return
+    }
     
     setIsSending(true)
     addMessage("user", v)
@@ -766,11 +780,7 @@ export default function Page() {
 
       <DatabaseConnectionModal
         isOpen={isModalOpen && !isConnected}
-        onClose={() => {
-          if (isConnected) {
-            setIsModalOpen(false)
-          }
-        }}
+        onClose={() => setIsModalOpen(false)}
         onConnect={handleConnect}
       />
       
