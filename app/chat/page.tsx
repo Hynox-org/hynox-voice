@@ -300,27 +300,48 @@ export default function Page() {
     await handleRemoveConnection()
   }, [handleRemoveConnection])
 
-  const handleSend = () => {
-    const v = text.trim()
-    if (!v || isSending) return
+  const handleSend = async () => {
+    const v = text.trim();
+    if (!v || isSending) return;
 
     if (!isConnected) {
-      setIsModalOpen(true)
-      addMessage("assistant", "Please connect a database to submit your query.")
-      return
+      setIsModalOpen(true);
+      addMessage("assistant", "Please connect a database to submit your query.");
+      return;
     }
-    
-    setIsSending(true)
-    addMessage("user", v)
-    console.log("Chat Context:", v, "File URL:", fileUrl)
-    setText("")
-    
+
+    setIsSending(true);
+    addMessage("user", v);
+    console.log("Chat Context:", v, "File URL:", fileUrl);
+    setText("");
+
+    // 🔹 Send data to Flask backend here (added)
+    try {
+      const response = await fetch("http://127.0.0.1:5000/backend", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          chat_context: v,
+          file_url: fileUrl,
+        }),
+      });
+
+      const data = await response.json();
+      console.log("Flask Response:", data); //RESPONSE
+    } catch (error) {
+      console.error("Error sending data to Flask:", error);
+    }
+
+    // 🔹 Keep your existing setTimeout block exactly as is
     setTimeout(() => {
-      addMessage("assistant", `Got it: "${v}". How can I help further?`)
-      speakText(`Got it: ${v}. This is a sample response.`)
-      setIsSending(false)
-    }, 500)
-  }
+      addMessage("assistant", `Got it: "${v}". How can I help further?`);
+      speakText(`Got it: ${v}. This is a sample response.`);
+      setIsSending(false);
+    }, 500);
+  };
+
 
   return (
     <main 
