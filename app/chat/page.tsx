@@ -342,6 +342,7 @@ export default function Page() {
       });
 
       const data: ApiResponse = await response.json()
+      console.log("Flask Response:", data)
       addMessage("assistant", data.summary, data)
       speakText(data.summary)
     } catch (error) {

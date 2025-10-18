@@ -22,8 +22,7 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from "@/components/ui/chart"
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
-import { PieChartComponent } from "./pie-chart"
+import { DataVisualization } from "./data-visualization"
 
 // Define the structure of the Flask API response
 export type ApiResponse = {
@@ -55,32 +54,16 @@ export function ResponseCard({ response }: ResponseCardProps) {
             {response.data && response.data.type === "bar" && (
               <div>
                 <h3 className="text-lg font-semibold mb-2">Chart</h3>
-                <ChartContainer config={{}} className="min-h-[200px] w-full">
-                  <BarChart data={response.data.data}>
-                    <CartesianGrid vertical={false} />
-                    <XAxis
-                      dataKey={Object.keys(response.data.data[0])[0]}
-                      tickLine={false}
-                      tickMargin={10}
-                      axisLine={false}
-                    />
-                    <YAxis />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <ChartLegend content={<ChartLegendContent />} />
-                    <Bar
-                      dataKey={Object.keys(response.data.data[0])[1]}
-                      fill="var(--color-primary)"
-                      radius={4}
-                    />
-                  </BarChart>
-                </ChartContainer>
+                <div className="flex justify-center">
+                  <DataVisualization type="bar" data={response.data.data} config={{}} />
+                </div>
               </div>
             )}
             {response.data && response.data.type === "pie" && (
               <div>
                 <h3 className="text-lg font-semibold mb-2">Pie Chart</h3>
                 <div className="flex justify-center">
-                  <PieChartComponent data={response.data.data} />
+                  <DataVisualization type="pie" data={response.data.data} config={{}} />
                 </div>
               </div>
             )}
