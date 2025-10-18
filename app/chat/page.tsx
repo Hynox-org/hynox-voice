@@ -4,15 +4,22 @@ import { useState, useEffect, useCallback, useRef } from "react"
 import { DatabaseConnectionModal } from "@/components/chat/database-connection-modal"
 import { MessageBubble } from "@/components/chat/message-bubble"
 import { VoiceVisualizer } from "@/components/chat/voice-visualizer"
+import { ResponseCard, ApiResponse } from "@/components/chat/response-card"
 import { Button } from "@/components/ui/button"
-import { ExcelIcon, ArrowIcon, MicIcon } from "@/components/icons"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { ExcelIcon, ArrowIcon, MicIcon, AttachmentIcon } from "@/components/icons"
 import { createClient } from "@supabase/supabase-js"
 import { cn } from "@/lib/utils"
 
 export type Message = {
-  id: string
+  id:string
   role: "user" | "assistant"
   content: string
+  response?: ApiResponse
 }
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -99,9 +106,15 @@ export default function Page() {
     if (!listening && !isSending) inputRef.current?.focus()
   }, [listening, isSending])
 
-  const addMessage = useCallback((role: "user" | "assistant", content: string) => {
-    setMessages((prev) => [...prev, { id: crypto.randomUUID(), role, content }])
-  }, [])
+  const addMessage = useCallback(
+    (role: "user" | "assistant", content: string, response?: ApiResponse) => {
+      setMessages((prev) => [
+        ...prev,
+        { id: crypto.randomUUID(), role, content, response },
+      ])
+    },
+    [],
+  )
 
   const speakText = useCallback((text: string) => {
     try {
@@ -317,7 +330,7 @@ export default function Page() {
 
     // 🔹 Send data to Flask backend here (added)
     try {
-      const response = await fetch("http://127.0.0.1:5000/backend", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_FLASK_API_URL}/backend`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -328,19 +341,27 @@ export default function Page() {
         }),
       });
 
-      const data = await response.json();
-      console.log("Flask Response:", data); //RESPONSE
+      const data: ApiResponse = await response.json()
+      addMessage("assistant", data.summary, data)
+      speakText(data.summary)
     } catch (error) {
-      console.error("Error sending data to Flask:", error);
+      console.error("Error sending data to Flask:", error)
+      addMessage(
+        "assistant",
+        "Sorry, something went wrong. Please try again.",
+        {
+          status: "error",
+          summary: "Failed to fetch response from the backend.",
+          data: null,
+          table: null,
+          error:
+            error instanceof Error ? error.message : "An unknown error occurred.",
+        },
+      )
+    } finally {
+      setIsSending(false)
     }
-
-    // 🔹 Keep your existing setTimeout block exactly as is
-    setTimeout(() => {
-      addMessage("assistant", `Got it: "${v}". How can I help further?`);
-      speakText(`Got it: ${v}. This is a sample response.`);
-      setIsSending(false);
-    }, 500);
-  };
+  }
 
 
   return (
@@ -363,217 +384,6 @@ export default function Page() {
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-pink-400/10 dark:bg-pink-600/5 rounded-full blur-3xl animate-pulse delay-500" />
       </div>
 
-      {/* Floating File Card Widget - Bottom Right */}
-      {isConnected && fileUrl && fileName && (
-        <>
-          {/* Mobile: Collapsed FAB */}
-          <div
-            className="
-              fixed 
-              bottom-[160px] 
-              right-4 
-              z-30
-              md:hidden
-            "
-          >
-            {!isFileCardExpanded ? (
-              <button
-                onClick={() => setIsFileCardExpanded(true)}
-                className="
-                  w-14 h-14
-                  flex items-center justify-center
-                  rounded-2xl
-                  backdrop-blur-xl
-                  bg-gradient-to-br from-green-400 to-emerald-500
-                  border border-white/30 dark:border-emerald-400/30
-                  text-white
-                  transition-all duration-300
-                  hover:scale-110
-                  active:scale-95
-                  animate-in fade-in zoom-in-95 duration-500
-                "
-              >
-                <ExcelIcon size={28} className="drop-shadow-md" />
-              </button>
-            ) : (
-              <div
-                className="
-                  w-[280px]
-                  backdrop-blur-xl
-                  bg-white/80 dark:bg-slate-900/80
-                  border border-white/30 dark:border-slate-700/30
-                  rounded-2xl
-                  p-4
-                  animate-in fade-in slide-in-from-right-4 duration-300
-                "
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div 
-                      className="
-                        flex-shrink-0 
-                        w-10 h-10
-                        flex items-center justify-center
-                        rounded-xl
-                        bg-gradient-to-br from-green-400 to-emerald-500
-                        transition-all duration-300
-                      "
-                    >
-                      <ExcelIcon className="text-white drop-shadow-md" size={20} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                        Connected
-                      </p>
-                      <p 
-                        className="text-xs font-bold text-slate-900 dark:text-white truncate"
-                        title={fileName}
-                      >
-                        {fileName.length > 20 ? `${fileName.slice(0, 20)}...` : fileName}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setIsFileCardExpanded(false)}
-                    className="
-                      text-slate-400 hover:text-slate-600 
-                      dark:text-slate-500 dark:hover:text-slate-300
-                      transition-colors duration-200
-                    "
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={handleRemoveConnection}
-                    disabled={isRemoving}
-                    size="sm"
-                    className="
-                      flex-1
-                      text-xs
-                      backdrop-blur-sm
-                      bg-white/50 dark:bg-slate-800/50
-                      border-slate-200 dark:border-slate-700
-                      hover:bg-red-50 dark:hover:bg-red-950/30
-                      hover:border-red-300 dark:hover:border-red-800
-                      hover:text-red-600 dark:hover:text-red-400
-                      transition-all duration-300
-                    "
-                  >
-                    {isRemoving ? "..." : "Remove"}
-                  </Button>
-                  <Button
-                    onClick={handleConnectAgain}
-                    disabled={isRemoving}
-                    size="sm"
-                    className="
-                      flex-1
-                      text-xs
-                      bg-gradient-to-r from-blue-500 to-indigo-600
-                      hover:from-blue-600 hover:to-indigo-700
-                      text-white
-                      transition-all duration-300
-                    "
-                  >
-                    Switch
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Desktop: Sidebar Widget */}
-          <div
-            className="
-              hidden md:block
-              fixed 
-              top-24
-              right-6
-              z-30
-              w-[320px]
-              backdrop-blur-xl
-              bg-white/70 dark:bg-slate-900/70
-              border border-white/30 dark:border-slate-700/30
-              rounded-3xl
-              p-5
-              transition-all duration-500
-              hover:scale-[1.02]
-              animate-in fade-in slide-in-from-right-4 duration-700
-            "
-          >
-            <div className="flex items-start gap-4 mb-4">
-              <div 
-                className="
-                  flex-shrink-0 
-                  w-14 h-14
-                  flex items-center justify-center
-                  rounded-2xl
-                  bg-gradient-to-br from-green-400 to-emerald-500
-                  transition-all duration-300
-                  hover:scale-110 hover:rotate-6
-                "
-              >
-                <ExcelIcon className="text-white drop-shadow-md" size={28} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wide">
-                  Connected File
-                </p>
-                <p 
-                  className="
-                    text-sm font-bold 
-                    text-slate-900 dark:text-white
-                    break-words
-                  "
-                  title={fileName}
-                >
-                  {fileName}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Button
-                variant="outline"
-                onClick={handleRemoveConnection}
-                disabled={isRemoving}
-                className="
-                  w-full
-                  text-sm font-semibold
-                  backdrop-blur-sm
-                  bg-white/50 dark:bg-slate-800/50
-                  border-slate-200 dark:border-slate-700
-                  hover:bg-red-50 dark:hover:bg-red-950/30
-                  hover:border-red-300 dark:hover:border-red-800
-                  hover:text-red-600 dark:hover:text-red-400
-                  transition-all duration-300
-                  hover:scale-105
-                "
-              >
-                {isRemoving ? "Removing..." : "Remove Connection"}
-              </Button>
-              <Button
-                onClick={handleConnectAgain}
-                disabled={isRemoving}
-                className="
-                  w-full
-                  text-sm font-semibold
-                  bg-gradient-to-r from-blue-500 to-indigo-600
-                  hover:from-blue-600 hover:to-indigo-700
-                  text-white
-                  transition-all duration-300
-                  hover:scale-105
-                "
-              >
-                Connect New File
-              </Button>
-            </div>
-          </div>
-        </>
-      )}
 
       <section className="flex-1 flex items-stretch pb-[140px] relative z-10">
         <div 
@@ -646,10 +456,8 @@ export default function Page() {
                   className="animate-in fade-in slide-in-from-bottom-3 duration-500"
                   style={{ animationDelay: `${idx * 50}ms` }}
                 >
-                  <MessageBubble 
-                    message={m} 
-                    onSpeak={speakText} 
-                  />
+                  <MessageBubble message={m} onSpeak={speakText} />
+                  {m.response && <ResponseCard response={m.response} />}
                 </div>
               ))}
               
@@ -750,6 +558,80 @@ export default function Page() {
             />
 
             <div className="flex items-center gap-2 sm:gap-3">
+              <div className="relative">
+                {isConnected ? (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button
+                        className="
+                          inline-flex items-center justify-center
+                          size-12 sm:size-11
+                          rounded-2xl
+                          text-slate-700 dark:text-slate-300
+                          bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800
+                          hover:from-slate-300 hover:to-slate-400 dark:hover:from-slate-600 dark:hover:to-slate-700
+                          transition-all duration-300
+                          hover:scale-105 active:scale-95
+                        "
+                        aria-label="Connected file options"
+                        title="Connected file"
+                      >
+                        {isConnected ? <ExcelIcon size={22} /> : <AttachmentIcon size={22} />}
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-64 sm:w-72" align="end">
+                      <div className="space-y-4">
+                        <div className="space-y-1">
+                          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                            Connected File
+                          </p>
+                          <p
+                            className="text-sm font-bold text-slate-900 dark:text-white break-words"
+                            title={fileName || ""}
+                          >
+                            {fileName}
+                          </p>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={handleRemoveConnection}
+                            disabled={isRemoving}
+                            className="w-full"
+                          >
+                            {isRemoving ? "Removing..." : "Remove"}
+                          </Button>
+                          <Button
+                            onClick={handleConnectAgain}
+                            disabled={isRemoving}
+                            className="w-full"
+                          >
+                            Switch File
+                          </Button>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                ) : (
+                  <button
+                    onClick={() => setIsModalOpen(true)}
+                    className="
+                      inline-flex items-center justify-center
+                      size-12 sm:size-11
+                      rounded-2xl
+                      text-slate-700 dark:text-slate-300
+                      bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800
+                      hover:from-slate-300 hover:to-slate-400 dark:hover:from-slate-600 dark:hover:to-slate-700
+                      transition-all duration-300
+                      hover:scale-105 active:scale-95
+                    "
+                    aria-label="Connect a file"
+                    title="Connect a file"
+                  >
+                    <AttachmentIcon size={22} />
+                  </button>
+                )}
+              </div>
               <button
                 type="button"
                 onClick={handleSend}
