@@ -1,317 +1,358 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useCallback, useRef } from "react"
-import { DatabaseConnectionModal } from "@/components/chat/database-connection-modal"
-import { MessageBubble } from "@/components/chat/message-bubble"
-import { VoiceVisualizer } from "@/components/chat/voice-visualizer"
-import { ResponseCard, ApiResponse } from "@/components/chat/response-card"
-import { Button } from "@/components/ui/button"
+import { useState, useEffect, useCallback, useRef } from "react";
+import { DatabaseConnectionModal } from "@/components/chat/database-connection-modal";
+import { MessageBubble } from "@/components/chat/message-bubble";
+import { VoiceVisualizer } from "@/components/chat/voice-visualizer";
+import { ResponseCard, ApiResponse } from "@/components/chat/response-card";
+import { Button } from "@/components/ui/button";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"
-import { ExcelIcon, ArrowIcon, MicIcon, AttachmentIcon } from "@/components/icons"
-import { createClient } from "@supabase/supabase-js"
-import { cn } from "@/lib/utils"
+} from "@/components/ui/popover";
+import {
+  ExcelIcon,
+  ArrowIcon,
+  MicIcon,
+  AttachmentIcon,
+} from "@/components/icons";
+import { createClient } from "@supabase/supabase-js";
+import { cn } from "@/lib/utils";
 
 export type Message = {
-  id:string
-  role: "user" | "assistant"
-  content: string
-  response?: ApiResponse
-}
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  response?: ApiResponse;
+};
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default function Page() {
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [isConnected, setIsConnected] = useState(false)
-  const [fileUrl, setFileUrl] = useState<string | null>(null)
-  const [fileName, setFileName] = useState<string | null>(null)
-  const [isRemoving, setIsRemoving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [isFileCardExpanded, setIsFileCardExpanded] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const [fileUrl, setFileUrl] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [isRemoving, setIsRemoving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isFileCardExpanded, setIsFileCardExpanded] = useState(false);
 
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
       role: "assistant",
-      content: "Hello! I'm Hynox. Ask me anything, or tap the mic and speak. I'll reply here.",
+      content:
+        "Hello! I'm Hynox. Ask me anything, or tap the mic and speak. I'll reply here.",
     },
-  ])
-  const [listening, setListening] = useState(false)
-  const [stream, setStream] = useState<MediaStream | null>(null)
-  const [text, setText] = useState("")
-  const [isSending, setIsSending] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const scrollRef = useRef<HTMLDivElement | null>(null)
+  ]);
+  const [listening, setListening] = useState(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [text, setText] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
 
-  const recognitionRef = useRef<any>(null)
-  const interimTranscriptRef = useRef<string>("")
+  const recognitionRef = useRef<any>(null);
+  const interimTranscriptRef = useRef<string>("");
 
   // Dynamic viewport height fix for mobile browsers
   useEffect(() => {
     const updateViewportHeight = () => {
-      const vh = window.innerHeight * 0.01
-      document.documentElement.style.setProperty("--vh", `${vh}px`)
-    }
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty("--vh", `${vh}px`);
+    };
 
-    updateViewportHeight()
-    window.addEventListener("resize", updateViewportHeight)
-    window.addEventListener("orientationchange", updateViewportHeight)
+    updateViewportHeight();
+    window.addEventListener("resize", updateViewportHeight);
+    window.addEventListener("orientationchange", updateViewportHeight);
 
     return () => {
-      window.removeEventListener("resize", updateViewportHeight)
-      window.removeEventListener("orientationchange", updateViewportHeight)
-    }
-  }, [])
+      window.removeEventListener("resize", updateViewportHeight);
+      window.removeEventListener("orientationchange", updateViewportHeight);
+    };
+  }, []);
 
   // Check for existing connection on mount
   useEffect(() => {
-    const storedFileUrl = localStorage.getItem("hynox_excel_file_url")
-    const storedFileName = localStorage.getItem("hynox_excel_file_name")
-    
+    const storedFileUrl = localStorage.getItem("hynox_excel_file_url");
+    const storedFileName = localStorage.getItem("hynox_excel_file_name");
+
     if (storedFileUrl) {
-      setIsConnected(true)
-      setFileUrl(storedFileUrl)
-      
+      setIsConnected(true);
+      setFileUrl(storedFileUrl);
+
       if (storedFileName) {
-        setFileName(storedFileName)
+        setFileName(storedFileName);
       } else {
-        const name = storedFileUrl.split("/").pop()?.split("?")[0]
-        setFileName(name ? decodeURIComponent(name) : null)
+        const name = storedFileUrl.split("/").pop()?.split("?")[0];
+        setFileName(name ? decodeURIComponent(name) : null);
       }
     } else {
-      setIsModalOpen(true)
+      setIsModalOpen(true);
     }
-  }, [])
+  }, []);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     if (scrollRef.current) {
-      const scrollBehavior = messages.length > 2 ? "smooth" : "auto"
+      const scrollBehavior = messages.length > 2 ? "smooth" : "auto";
       scrollRef.current.scrollTo({
         top: scrollRef.current.scrollHeight,
         behavior: scrollBehavior,
-      })
+      });
     }
-  }, [messages])
+  }, [messages]);
 
   // Focus input bar when not listening
   useEffect(() => {
-    if (!listening && !isSending) inputRef.current?.focus()
-  }, [listening, isSending])
+    if (!listening && !isSending) inputRef.current?.focus();
+  }, [listening, isSending]);
 
   const addMessage = useCallback(
     (role: "user" | "assistant", content: string, response?: ApiResponse) => {
       setMessages((prev) => [
         ...prev,
         { id: crypto.randomUUID(), role, content, response },
-      ])
+      ]);
     },
-    [],
-  )
+    []
+  );
 
   const speakText = useCallback((text: string) => {
     try {
       if ("speechSynthesis" in window) {
-        speechSynthesis.cancel()
-        const utter = new SpeechSynthesisUtterance(text)
-        utter.rate = 1
-        utter.pitch = 1
-        utter.volume = 1
-        speechSynthesis.speak(utter)
+        speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.rate = 1;
+        utter.pitch = 1;
+        utter.volume = 1;
+        speechSynthesis.speak(utter);
       }
     } catch (error) {
-      console.warn("Speech synthesis not supported:", error)
+      console.warn("Speech synthesis not supported:", error);
     }
-  }, [])
+  }, []);
 
   const stopListening = useCallback(async () => {
-    setListening(false)
-    
+    setListening(false);
+
     if (recognitionRef.current) {
       try {
-        recognitionRef.current.onresult = null
-        recognitionRef.current.onend = null
-        recognitionRef.current.onerror = null
-        recognitionRef.current.stop()
+        recognitionRef.current.onresult = null;
+        recognitionRef.current.onend = null;
+        recognitionRef.current.onerror = null;
+        recognitionRef.current.stop();
       } catch (error) {
-        console.warn("Error stopping recognition:", error)
+        console.warn("Error stopping recognition:", error);
       }
-      recognitionRef.current = null
+      recognitionRef.current = null;
     }
 
     if (stream) {
-      stream.getTracks().forEach((track) => track.stop())
-      setStream(null)
+      stream.getTracks().forEach((track) => track.stop());
+      setStream(null);
     }
-  }, [stream])
+  }, [stream]);
 
   const startListening = useCallback(async () => {
     if (listening) {
-      await stopListening()
-      return
+      await stopListening();
+      return;
     }
 
     try {
-      const media = await navigator.mediaDevices.getUserMedia({ audio: true })
-      setStream(media)
+      const media = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setStream(media);
     } catch (error) {
-      console.warn("Microphone access denied or unavailable:", error)
+      console.warn("Microphone access denied or unavailable:", error);
     }
 
     const SpeechRecognition: any =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      setListening(true)
+      setListening(true);
       setTimeout(() => {
-        setListening(false)
-        addMessage("assistant", "Speech recognition is not supported on this browser. Please type your message instead.")
-      }, 1500)
-      return
+        setListening(false);
+        addMessage(
+          "assistant",
+          "Speech recognition is not supported on this browser. Please type your message instead."
+        );
+      }, 1500);
+      return;
     }
 
-    const recognition = new SpeechRecognition()
-    recognition.lang = "en-US"
-    recognition.interimResults = true
-    recognition.continuous = false
-    recognition.maxAlternatives = 1
+    const recognition = new SpeechRecognition();
+    recognition.lang = "en-US";
+    recognition.interimResults = true;
+    recognition.continuous = false;
+    recognition.maxAlternatives = 1;
 
-    interimTranscriptRef.current = ""
+    interimTranscriptRef.current = "";
 
     recognition.onresult = (event: any) => {
-      let interim = ""
-      let finalText = ""
-      
+      let interim = "";
+      let finalText = "";
+
       for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i]
+        const result = event.results[i];
         if (result.isFinal) {
-          finalText += result[0].transcript
+          finalText += result[0].transcript;
         } else {
-          interim += result[0].transcript
+          interim += result[0].transcript;
         }
       }
-      
-      interimTranscriptRef.current = (finalText || interim).trim()
-    }
 
-    recognition.onend = () => {
-      const userText = interimTranscriptRef.current.trim()
-      
+      interimTranscriptRef.current = (finalText || interim).trim();
+      console.log("Interim Transcript:", interimTranscriptRef.current); // Log interim results
+    };
+
+    recognition.onend = async () => {
+      const userText = interimTranscriptRef.current.trim();
+
       if (userText) {
-        addMessage("user", userText)
+        setIsSending(true);
+        addMessage("user", userText);
 
         if (!isConnected) {
-          setIsModalOpen(true)
-          addMessage("assistant", "Please connect a database to submit your query.")
-          stopListening()
-          return
+          setIsModalOpen(true);
+          addMessage(
+            "assistant",
+            "Please connect a database to submit your query."
+          );
+          stopListening();
+          return;
         }
-        
-        console.log("Chat Context:", userText, "File URL:", fileUrl)
-        setTimeout(() => {
-          addMessage("assistant", `You said: "${userText}". This is a sample response.`)
-          speakText(`You said: ${userText}. This is a sample response.`)
-        }, 600)
+
+        console.log("Final Chat Context:", userText, "File URL:", fileUrl); // Log final results
+        stopListening();
+        const data: ApiResponse = await getChatApiResponse(userText, fileUrl!);
+        console.log("Flask Response:", data);
+        addMessage("assistant", data.summary, data);
+        speakText(data.summary);
+      } else {
+        addMessage(
+          "assistant",
+          "No speech detected at the end of recognition."
+        ); // Log if no speech was detected
       }
-      
-      stopListening()
-    }
+      setIsSending(false);
+      stopListening();
+    };
 
     recognition.onerror = (event: any) => {
-      console.error("Speech recognition error:", event.error)
-      
-      if (event.error === "no-speech") {
-        addMessage("assistant", "No speech detected. Please try again.")
-      } else if (event.error === "network") {
-        addMessage("assistant", "Network error. Please check your connection.")
-      }
-      
-      stopListening()
-    }
+      console.error("Speech recognition error:", event.error);
 
-    recognitionRef.current = recognition
-    setListening(true)
+      if (event.error === "no-speech") {
+        addMessage("assistant", "No speech detected. Please try again.");
+      } else if (event.error === "network") {
+        addMessage("assistant", "Network error. Please check your connection.");
+      }
+
+      stopListening();
+    };
+
+    recognitionRef.current = recognition;
+    setListening(true);
 
     try {
-      recognition.start()
+      recognition.start();
     } catch (error) {
-      console.error("Failed to start recognition:", error)
-      stopListening()
+      console.error("Failed to start recognition:", error);
+      stopListening();
     }
-  }, [addMessage, listening, stopListening, speakText])
+  }, [addMessage, listening, stopListening, speakText]);
 
   useEffect(() => {
     return () => {
       if (recognitionRef.current) {
         try {
-          recognitionRef.current.stop()
+          recognitionRef.current.stop();
         } catch {}
       }
       if (stream) {
-        stream.getTracks().forEach((track) => track.stop())
+        stream.getTracks().forEach((track) => track.stop());
       }
       if ("speechSynthesis" in window) {
-        speechSynthesis.cancel()
+        speechSynthesis.cancel();
       }
-    }
-  }, [stream])
+      localStorage.removeItem("hynox_excel_file_url");
+      localStorage.removeItem("hynox_excel_file_name");
+    };
+  }, [stream]);
 
   const handleConnect = useCallback((url: string) => {
-    const name = url.split("/").pop()?.split("?")[0]
-    const decodedName = name ? decodeURIComponent(name) : null
-    
-    setFileUrl(url)
-    setIsConnected(true)
-    setFileName(decodedName)
-    setError(null)
-    
-    localStorage.setItem("hynox_excel_file_url", url)
+    const name = url.split("/").pop()?.split("?")[0];
+    const decodedName = name ? decodeURIComponent(name) : null;
+
+    setFileUrl(url);
+    setIsConnected(true);
+    setFileName(decodedName);
+    setError(null);
+
+    localStorage.setItem("hynox_excel_file_url", url);
     if (decodedName) {
-      localStorage.setItem("hynox_excel_file_name", decodedName)
+      localStorage.setItem("hynox_excel_file_name", decodedName);
     }
-  }, [])
+  }, []);
 
   const handleRemoveConnection = useCallback(async () => {
-    if (!fileUrl || !fileName) return
+    if (!fileUrl || !fileName) return;
 
-    setIsRemoving(true)
-    setError(null)
+    setIsRemoving(true);
+    setError(null);
 
     try {
-      const filePath = `excel-uploads/${fileName}`
+      const filePath = `excel-uploads/${fileName}`;
       const { error: storageError } = await supabase.storage
         .from("file-storage")
-        .remove([filePath])
+        .remove([filePath]);
 
       if (storageError) {
-        throw storageError
+        throw storageError;
       }
 
-      localStorage.removeItem("hynox_excel_file_url")
-      localStorage.removeItem("hynox_excel_file_name")
-      
-      setIsConnected(false)
-      setFileUrl(null)
-      setFileName(null)
-      setIsModalOpen(true)
+      localStorage.removeItem("hynox_excel_file_url");
+      localStorage.removeItem("hynox_excel_file_name");
+
+      setIsConnected(false);
+      setFileUrl(null);
+      setFileName(null);
+      setIsModalOpen(true);
     } catch (error: any) {
-      console.error("Error removing file from Supabase:", error.message)
-      setError(`Failed to remove file: ${error.message}`)
+      console.error("Error removing file from Supabase:", error.message);
+      setError(`Failed to remove file: ${error.message}`);
     } finally {
-      setIsRemoving(false)
+      setIsRemoving(false);
     }
-  }, [fileUrl, fileName])
+  }, [fileUrl, fileName]);
 
   const handleConnectAgain = useCallback(async () => {
-    await handleRemoveConnection()
-  }, [handleRemoveConnection])
+    await handleRemoveConnection();
+  }, [handleRemoveConnection]);
+
+  const getChatApiResponse = async (v: string, fileUrl: string) => {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_FLASK_API_URL}/backend`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          chat_context: v,
+          file_url: fileUrl,
+        }),
+      }
+    );
+
+    return response.json();
+  };
 
   const handleSend = async () => {
     const v = text.trim();
@@ -319,7 +360,10 @@ export default function Page() {
 
     if (!isConnected) {
       setIsModalOpen(true);
-      addMessage("assistant", "Please connect a database to submit your query.");
+      addMessage(
+        "assistant",
+        "Please connect a database to submit your query."
+      );
       return;
     }
 
@@ -330,23 +374,12 @@ export default function Page() {
 
     // 🔹 Send data to Flask backend here (added)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_FLASK_API_URL}/backend`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          chat_context: v,
-          file_url: fileUrl,
-        }),
-      });
-
-      const data: ApiResponse = await response.json()
-      console.log("Flask Response:", data)
-      addMessage("assistant", data.summary, data)
-      speakText(data.summary)
+      const data: ApiResponse = await getChatApiResponse(v, fileUrl!);
+      console.log("Flask Response:", data);
+      addMessage("assistant", data.summary, data);
+      speakText(data.summary);
     } catch (error) {
-      console.error("Error sending data to Flask:", error)
+      console.error("Error sending data to Flask:", error);
       addMessage(
         "assistant",
         "Sorry, something went wrong. Please try again.",
@@ -356,17 +389,18 @@ export default function Page() {
           data: null,
           table: null,
           error:
-            error instanceof Error ? error.message : "An unknown error occurred.",
-        },
-      )
+            error instanceof Error
+              ? error.message
+              : "An unknown error occurred.",
+        }
+      );
     } finally {
-      setIsSending(false)
+      setIsSending(false);
     }
-  }
-
+  };
 
   return (
-    <main 
+    <main
       className="
         min-h-screen 
         flex flex-col
@@ -385,9 +419,8 @@ export default function Page() {
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-pink-400/10 dark:bg-pink-600/5 rounded-full blur-3xl animate-pulse delay-500" />
       </div>
 
-
       <section className="flex-1 flex items-stretch pb-[140px] relative z-10">
-        <div 
+        <div
           className="
             mx-auto 
             w-full 
@@ -400,7 +433,7 @@ export default function Page() {
         >
           {/* Error Alert */}
           {error && (
-            <div 
+            <div
               className="
                 p-4 sm:p-5
                 backdrop-blur-xl
@@ -419,7 +452,7 @@ export default function Page() {
           )}
 
           {/* Chat Window */}
-          <div 
+          <div
             ref={scrollRef}
             className="
               flex-1 
@@ -441,7 +474,7 @@ export default function Page() {
               maxHeight: "calc(100% - 140px)",
             }}
           >
-            <div 
+            <div
               className="
                 mx-auto 
                 w-full 
@@ -461,15 +494,26 @@ export default function Page() {
                   {m.response && <ResponseCard response={m.response} />}
                 </div>
               ))}
-              
+
               {isSending && (
                 <div className="flex items-center gap-2 px-4 py-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
                   <div className="flex gap-1.5">
-                    <span className="w-2 h-2 bg-slate-400 dark:bg-slate-600 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                    <span className="w-2 h-2 bg-slate-400 dark:bg-slate-600 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                    <span className="w-2 h-2 bg-slate-400 dark:bg-slate-600 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                    <span
+                      className="w-2 h-2 bg-slate-400 dark:bg-slate-600 rounded-full animate-bounce"
+                      style={{ animationDelay: "0ms" }}
+                    />
+                    <span
+                      className="w-2 h-2 bg-slate-400 dark:bg-slate-600 rounded-full animate-bounce"
+                      style={{ animationDelay: "150ms" }}
+                    />
+                    <span
+                      className="w-2 h-2 bg-slate-400 dark:bg-slate-600 rounded-full animate-bounce"
+                      style={{ animationDelay: "300ms" }}
+                    />
                   </div>
-                  <span className="text-sm text-slate-500 dark:text-slate-400 ml-2">Hynox is thinking...</span>
+                  <span className="text-sm text-slate-500 dark:text-slate-400 ml-2">
+                    Hynox is thinking...
+                  </span>
                 </div>
               )}
             </div>
@@ -479,7 +523,7 @@ export default function Page() {
 
       {/* Voice Visualizer */}
       {listening && (
-        <div 
+        <div
           className="
             py-4 md:py-5 
             px-4 sm:px-6 md:px-8 
@@ -493,10 +537,7 @@ export default function Page() {
             animate-in fade-in slide-in-from-bottom-4 duration-500
           "
         >
-          <VoiceVisualizer 
-            stream={stream} 
-            listening={listening} 
-          />
+          <VoiceVisualizer stream={stream} listening={listening} />
         </div>
       )}
 
@@ -520,7 +561,7 @@ export default function Page() {
         }}
       >
         <div className="w-full max-w-4xl mx-auto">
-          <div 
+          <div
             className="
               flex items-center gap-3
               rounded-3xl
@@ -550,8 +591,8 @@ export default function Page() {
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault()
-                  handleSend()
+                  e.preventDefault();
+                  handleSend();
                 }
               }}
               disabled={isSending || listening}
@@ -577,7 +618,11 @@ export default function Page() {
                         aria-label="Connected file options"
                         title="Connected file"
                       >
-                        {isConnected ? <ExcelIcon size={22} /> : <AttachmentIcon size={22} />}
+                        {isConnected ? (
+                          <ExcelIcon size={22} />
+                        ) : (
+                          <AttachmentIcon size={22} />
+                        )}
                       </button>
                     </PopoverTrigger>
                     <PopoverContent className="w-64 sm:w-72" align="end">
@@ -675,9 +720,13 @@ export default function Page() {
               </button>
             </div>
           </div>
-          
+
           <p className="mt-3 text-center text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium transition-all duration-300">
-            Press <kbd className="px-2 py-1 mx-1 rounded-md bg-slate-200 dark:bg-slate-800 font-mono text-xs">Enter</kbd> to send • Tap mic to speak
+            Press{" "}
+            <kbd className="px-2 py-1 mx-1 rounded-md bg-slate-200 dark:bg-slate-800 font-mono text-xs">
+              Enter
+            </kbd>{" "}
+            to send • Tap mic to speak
           </p>
         </div>
       </div>
@@ -687,83 +736,87 @@ export default function Page() {
         onClose={() => setIsModalOpen(false)}
         onConnect={handleConnect}
       />
-      
+
       <style jsx global>{`
         @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
         }
-        
+
         @keyframes slideInFromTop {
-          from { 
+          from {
             opacity: 0;
             transform: translateY(-16px);
           }
-          to { 
+          to {
             opacity: 1;
             transform: translateY(0);
           }
         }
-        
+
         @keyframes slideInFromBottom {
-          from { 
+          from {
             opacity: 0;
             transform: translateY(16px);
           }
-          to { 
+          to {
             opacity: 1;
             transform: translateY(0);
           }
         }
 
         @keyframes slideInFromRight {
-          from { 
+          from {
             opacity: 0;
             transform: translateX(16px);
           }
-          to { 
+          to {
             opacity: 1;
             transform: translateX(0);
           }
         }
-        
+
         @keyframes zoomIn {
-          from { 
+          from {
             opacity: 0;
             transform: scale(0.95);
           }
-          to { 
+          to {
             opacity: 1;
             transform: scale(1);
           }
         }
-        
+
         .animate-in {
           animation-fill-mode: both;
         }
-        
+
         .fade-in {
           animation-name: fadeIn;
         }
-        
+
         .slide-in-from-top-4 {
           animation-name: slideInFromTop;
         }
-        
+
         .slide-in-from-top-2 {
           animation-name: slideInFromTop;
           animation-duration: 0.3s;
         }
-        
+
         .slide-in-from-bottom-4 {
           animation-name: slideInFromBottom;
         }
-        
+
         .slide-in-from-bottom-3 {
           animation-name: slideInFromBottom;
           animation-duration: 0.5s;
         }
-        
+
         .slide-in-from-bottom-2 {
           animation-name: slideInFromBottom;
           animation-duration: 0.3s;
@@ -772,61 +825,61 @@ export default function Page() {
         .slide-in-from-right-4 {
           animation-name: slideInFromRight;
         }
-        
+
         .zoom-in-95 {
           animation-name: zoomIn;
         }
-        
+
         .duration-300 {
           animation-duration: 300ms;
         }
-        
+
         .duration-500 {
           animation-duration: 500ms;
         }
-        
+
         .duration-700 {
           animation-duration: 700ms;
         }
-        
+
         .delay-100 {
           animation-delay: 100ms;
         }
-        
+
         .delay-500 {
           animation-delay: 500ms;
         }
-        
+
         .delay-1000 {
           animation-delay: 1000ms;
         }
-        
+
         ::-webkit-scrollbar {
           width: 8px;
         }
-        
+
         ::-webkit-scrollbar-track {
           background: transparent;
         }
-        
+
         ::-webkit-scrollbar-thumb {
           background: rgba(148, 163, 184, 0.4);
           border-radius: 9999px;
           transition: background 0.3s ease;
         }
-        
+
         ::-webkit-scrollbar-thumb:hover {
           background: rgba(148, 163, 184, 0.6);
         }
-        
+
         .dark ::-webkit-scrollbar-thumb {
           background: rgba(71, 85, 105, 0.4);
         }
-        
+
         .dark ::-webkit-scrollbar-thumb:hover {
           background: rgba(71, 85, 105, 0.6);
         }
       `}</style>
     </main>
-  )
+  );
 }
