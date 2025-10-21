@@ -226,6 +226,7 @@ export default function Page() {
             "Please connect a database to submit your query."
           );
           stopListening();
+          setIsSending(false);
           return;
         }
 
@@ -281,8 +282,6 @@ export default function Page() {
       if ("speechSynthesis" in window) {
         speechSynthesis.cancel();
       }
-      localStorage.removeItem("hynox_excel_file_url");
-      localStorage.removeItem("hynox_excel_file_name");
     };
   }, [stream]);
 
