@@ -1,180 +1,193 @@
-"use client"
+"use client";
 
-import { useState, useRef, useCallback } from "react"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
-import { createClient } from "@supabase/supabase-js"
-import { cn } from "@/lib/utils"
+import { useState, useRef, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { createClient } from "@supabase/supabase-js";
+import { cn } from "@/lib/utils";
 
 interface DatabaseConnectionModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onConnect: (fileUrl: string) => void
+  isOpen: boolean;
+  onClose: () => void;
+  onConnect: (fileUrl: string) => void;
 }
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-export function DatabaseConnectionModal({ isOpen, onClose, onConnect }: DatabaseConnectionModalProps) {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [isDragging, setIsDragging] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [uploadProgress, setUploadProgress] = useState(0)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+export function DatabaseConnectionModal({
+  isOpen,
+  onClose,
+  onConnect,
+}: DatabaseConnectionModalProps) {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const validateFile = (file: File): string | null => {
-    const fileExtension = file.name.split(".").pop()?.toLowerCase()
-    const validExtensions = ["xlsx", "xls", "csv"]
-    
+    const fileExtension = file.name.split(".").pop()?.toLowerCase();
+    const validExtensions = ["xlsx", "xls", "csv"];
+
     if (!validExtensions.includes(fileExtension || "")) {
-      return "Please upload a valid Excel file (.xlsx, .xls, or .csv)"
+      return "Please upload a valid Excel file (.xlsx, .xls, or .csv)";
     }
-    
-    const maxSize = 10 * 1024 * 1024 // 10MB
+
+    const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
-      return "File size must be less than 10MB"
+      return "File size must be less than 10MB";
     }
-    
-    return null
-  }
+
+    return null;
+  };
 
   const handleFileSelect = (file: File) => {
-    const validationError = validateFile(file)
-    
+    const validationError = validateFile(file);
+
     if (validationError) {
-      setError(validationError)
-      setSelectedFile(null)
-      return
+      setError(validationError);
+      setSelectedFile(null);
+      return;
     }
-    
-    setError(null)
-    setSelectedFile(file)
-  }
+
+    setError(null);
+    setSelectedFile(file);
+  };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
-      handleFileSelect(event.target.files[0])
+      handleFileSelect(event.target.files[0]);
     } else {
-      setSelectedFile(null)
-      setError(null)
+      setSelectedFile(null);
+      setError(null);
     }
-  }
+  };
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragging(true)
-  }, [])
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragging(false)
-  }, [])
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-  }, [])
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragging(false)
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
 
-    const files = e.dataTransfer.files
+    const files = e.dataTransfer.files;
     if (files && files.length > 0) {
-      handleFileSelect(files[0])
+      handleFileSelect(files[0]);
     }
-  }, [])
+  }, []);
 
   const handleUpload = async () => {
     if (!selectedFile) {
-      setError("Please select an Excel file to upload.")
-      return
+      setError("Please select an Excel file to upload.");
+      return;
     }
 
-    setLoading(true)
-    setUploadProgress(0)
-    setError(null)
+    setLoading(true);
+    setUploadProgress(0);
+    setError(null);
 
     try {
-      const fileName = selectedFile.name
-      
+      const fileName = selectedFile.name;
+
       // Simulate upload progress
       const progressInterval = setInterval(() => {
         setUploadProgress((prev) => {
           if (prev >= 90) {
-            clearInterval(progressInterval)
-            return 90
+            clearInterval(progressInterval);
+            return 90;
           }
-          return prev + 10
-        })
-      }, 100)
+          return prev + 10;
+        });
+      }, 100);
 
       const { data, error: uploadError } = await supabase.storage
         .from("file-storage")
         .upload(`excel-uploads/${fileName}`, selectedFile, {
           cacheControl: "3600",
           upsert: true,
-        })
+        });
 
-      clearInterval(progressInterval)
-      setUploadProgress(100)
+      clearInterval(progressInterval);
+      setUploadProgress(100);
 
       if (uploadError) {
-        throw uploadError
+        throw uploadError;
       }
 
       const { data: publicUrlData } = supabase.storage
         .from("file-storage")
-        .getPublicUrl(`excel-uploads/${fileName}`)
+        .getPublicUrl(`excel-uploads/${fileName}`);
 
       if (publicUrlData && publicUrlData.publicUrl) {
-        localStorage.setItem("hynox_excel_file_url", publicUrlData.publicUrl)
-        localStorage.setItem("hynox_excel_file_name", fileName)
-        
+        localStorage.setItem("hynox_excel_file_url", publicUrlData.publicUrl);
+        localStorage.setItem("hynox_excel_file_name", fileName);
+
         setTimeout(() => {
-          onConnect(publicUrlData.publicUrl)
-          onClose()
-          resetModal()
-        }, 500)
+          onConnect(publicUrlData.publicUrl);
+          onClose();
+          resetModal();
+        }, 500);
       } else {
-        throw new Error("Could not get public URL for the uploaded file.")
+        throw new Error("Could not get public URL for the uploaded file.");
       }
     } catch (error: any) {
-      console.error("Error uploading file:", error.message)
-      setError(`Upload failed: ${error.message}`)
-      setUploadProgress(0)
+      console.error("Error uploading file:", error.message);
+      setError(`Upload failed: ${error.message}`);
+      setUploadProgress(0);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const resetModal = () => {
-    setSelectedFile(null)
-    setError(null)
-    setUploadProgress(0)
-    setIsDragging(false)
+    setSelectedFile(null);
+    localStorage.removeItem("hynox_excel_file_url");
+    localStorage.removeItem("hynox_excel_file_name");
+    setError(null);
+    setUploadProgress(0);
+    setIsDragging(false);
     if (fileInputRef.current) {
-      fileInputRef.current.value = ""
+      fileInputRef.current.value = "";
     }
-  }
+  };
 
   const handleBrowseClick = () => {
-    fileInputRef.current?.click()
-  }
+    fileInputRef.current?.click();
+  };
 
   const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return "0 Bytes"
-    const k = 1024
-    const sizes = ["Bytes", "KB", "MB"]
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + " " + sizes[i]
-  }
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -221,12 +234,14 @@ export function DatabaseConnectionModal({ isOpen, onClose, onConnect }: Database
 
             {!selectedFile ? (
               <div className="flex flex-col items-center gap-4 px-6 py-8">
-                <div className={cn(
-                  "w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300",
-                  isDragging 
-                    ? "bg-blue-500 dark:bg-blue-600 scale-110" 
-                    : "bg-gradient-to-br from-blue-500 to-indigo-600"
-                )}>
+                <div
+                  className={cn(
+                    "w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300",
+                    isDragging
+                      ? "bg-blue-500 dark:bg-blue-600 scale-110"
+                      : "bg-gradient-to-br from-blue-500 to-indigo-600"
+                  )}
+                >
                   <svg
                     className="w-8 h-8 text-white"
                     fill="none"
@@ -244,7 +259,9 @@ export function DatabaseConnectionModal({ isOpen, onClose, onConnect }: Database
 
                 <div className="text-center">
                   <p className="text-lg font-semibold text-slate-900 dark:text-white mb-1">
-                    {isDragging ? "Drop your file here" : "Drag & drop your file"}
+                    {isDragging
+                      ? "Drop your file here"
+                      : "Drag & drop your file"}
                   </p>
                   <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
                     or click to browse
@@ -304,8 +321,8 @@ export function DatabaseConnectionModal({ isOpen, onClose, onConnect }: Database
                       variant="ghost"
                       size="sm"
                       onClick={(e) => {
-                        e.stopPropagation()
-                        resetModal()
+                        e.stopPropagation();
+                        resetModal();
                       }}
                       className="mt-3 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30"
                     >
@@ -319,7 +336,7 @@ export function DatabaseConnectionModal({ isOpen, onClose, onConnect }: Database
 
           {/* Error Message */}
           {error && (
-            <div 
+            <div
               className="
                 mt-4 p-3 
                 rounded-xl 
@@ -329,7 +346,11 @@ export function DatabaseConnectionModal({ isOpen, onClose, onConnect }: Database
               "
             >
               <p className="text-sm text-red-700 dark:text-red-400 flex items-center gap-2">
-                <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <svg
+                  className="w-4 h-4 flex-shrink-0"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
                   <path
                     fillRule="evenodd"
                     d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
@@ -400,5 +421,5 @@ export function DatabaseConnectionModal({ isOpen, onClose, onConnect }: Database
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
