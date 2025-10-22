@@ -267,7 +267,7 @@ export default function Page() {
       console.error("Failed to start recognition:", error);
       stopListening();
     }
-  }, [addMessage, listening, stopListening, speakText]);
+  }, [addMessage, listening, stopListening, speakText, isConnected, fileUrl]);
 
   useEffect(() => {
     return () => {
