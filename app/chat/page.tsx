@@ -29,7 +29,6 @@ export type Message = {
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default function Page() {
@@ -39,7 +38,6 @@ export default function Page() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isFileCardExpanded, setIsFileCardExpanded] = useState(false);
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -55,7 +53,6 @@ export default function Page() {
   const [isSending, setIsSending] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
-
   const recognitionRef = useRef<any>(null);
   const interimTranscriptRef = useRef<string>("");
 
@@ -209,7 +206,6 @@ export default function Page() {
       }
 
       interimTranscriptRef.current = (finalText || interim).trim();
-      console.log("Interim Transcript:", interimTranscriptRef.current); // Log interim results
     };
 
     recognition.onend = async () => {
@@ -230,17 +226,12 @@ export default function Page() {
           return;
         }
 
-        console.log("Final Chat Context:", userText, "File URL:", fileUrl); // Log final results
         stopListening();
         const data: ApiResponse = await getChatApiResponse(userText, fileUrl!);
-        console.log("Flask Response:", data);
         addMessage("assistant", data.summary, data);
         speakText(data.summary);
       } else {
-        addMessage(
-          "assistant",
-          "No speech detected at the end of recognition."
-        ); // Log if no speech was detected
+        addMessage("assistant", "No speech detected. Please try again.");
       }
       setIsSending(false);
       stopListening();
@@ -368,13 +359,10 @@ export default function Page() {
 
     setIsSending(true);
     addMessage("user", v);
-    console.log("Chat Context:", v, "File URL:", fileUrl);
     setText("");
 
-    // 🔹 Send data to Flask backend here (added)
     try {
       const data: ApiResponse = await getChatApiResponse(v, fileUrl!);
-      console.log("Flask Response:", data);
       addMessage("assistant", data.summary, data);
       speakText(data.summary);
     } catch (error) {
@@ -401,331 +389,429 @@ export default function Page() {
   return (
     <main
       className="
-        min-h-screen 
+        h-screen 
         flex flex-col
-        bg-gradient-to-br from-slate-50 via-white to-blue-50
-        dark:from-slate-950 dark:via-slate-900 dark:to-blue-950
-        transition-colors duration-500
+        bg-slate-50 dark:bg-slate-950
+        transition-colors duration-300
       "
       style={{
-        minHeight: "calc(var(--vh, 1vh) * 100)",
+        height: "calc(var(--vh, 1vh) * 100)",
       }}
     >
-      {/* Animated Background Elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-400/20 dark:bg-blue-600/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-400/20 dark:bg-purple-600/10 rounded-full blur-3xl animate-pulse delay-1000" />
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-pink-400/10 dark:bg-pink-600/5 rounded-full blur-3xl animate-pulse delay-500" />
+      {/* Minimalist Background Pattern */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-40">
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.05),transparent_50%)]" />
       </div>
 
-      <section className="flex-1 flex items-stretch pb-[140px] relative z-10">
+      <header className="
+  relative z-30
+  border-b border-slate-200/80 dark:border-slate-800/80
+  bg-white/95 dark:bg-slate-900/95
+  backdrop-blur-xl
+  px-4 sm:px-6 lg:px-8
+  py-3 sm:py-4
+  transition-all duration-300
+">
+  <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
+    {/* Active Connection Info */}
+    <div className="flex items-center gap-3 min-w-0 flex-1">
+      {isConnected && fileName ? (
+        <>
+          <div className="
+            size-9 sm:size-10
+            rounded-lg
+            bg-gradient-to-br from-green-500 to-emerald-600
+            flex items-center justify-center
+            flex-shrink-0
+            shadow-lg shadow-green-500/25
+          ">
+            <ExcelIcon size={20} className="text-white" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              Connected to
+            </p>
+            <p className="text-sm sm:text-base font-semibold text-slate-900 dark:text-white truncate">
+              {fileName}
+            </p>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="
+            size-9 sm:size-10
+            rounded-lg
+            bg-slate-100 dark:bg-slate-800
+            flex items-center justify-center
+            flex-shrink-0
+          ">
+            <AttachmentIcon size={20} className="text-slate-400" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              No database
+            </p>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="text-sm sm:text-base font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              Connect a file to start
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+
+    {/* Actions */}
+    <div className="flex items-center gap-2">
+      {isConnected && (
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              className="
+                size-9 sm:size-10
+                rounded-lg
+                flex items-center justify-center
+                text-slate-600 dark:text-slate-400
+                hover:bg-slate-100 dark:hover:bg-slate-800
+                transition-colors duration-200
+              "
+              aria-label="Manage connection"
+            >
+              <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-64" align="end">
+            <div className="space-y-3">
+              <div>
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+                  Active Connection
+                </p>
+                <p className="text-sm font-medium text-slate-900 dark:text-white mb-3 break-words">
+                  {fileName}
+                </p>
+                <div className="flex flex-col gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRemoveConnection}
+                    disabled={isRemoving}
+                    className="w-full"
+                  >
+                    {isRemoving ? "Removing..." : "Disconnect"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleConnectAgain}
+                    disabled={isRemoving}
+                    className="w-full"
+                  >
+                    Switch File
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+      )}
+    </div>
+  </div>
+</header>
+
+      {/* Error Toast - Redesigned */}
+      {error && (
         <div
           className="
-            mx-auto 
-            w-full 
-            max-w-5xl 
-            px-4 sm:px-6 md:px-8
-            py-6 sm:py-8 md:py-10
-            flex flex-col 
-            gap-4 sm:gap-5
+            fixed top-20 right-4 left-4 sm:left-auto sm:right-6
+            sm:max-w-md
+            z-50
+            p-4
+            backdrop-blur-xl
+            bg-red-50/95 dark:bg-red-950/95
+            border border-red-200 dark:border-red-800
+            rounded-xl
+            shadow-2xl shadow-red-500/20
+            animate-in fade-in slide-in-from-top-4 duration-300
           "
+          role="alert"
         >
-          {/* Error Alert */}
-          {error && (
-            <div
-              className="
-                p-4 sm:p-5
-                backdrop-blur-xl
-                bg-red-50/90 dark:bg-red-950/50
-                border border-red-200 dark:border-red-800/50
-                rounded-2xl
-                animate-in fade-in slide-in-from-top-2 duration-500
-              "
-              role="alert"
-            >
-              <p className="font-bold text-red-800 dark:text-red-300 mb-2 text-sm sm:text-base">
+          <div className="flex items-start gap-3">
+            <div className="size-5 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <svg className="size-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm text-red-900 dark:text-red-100 mb-1">
                 Error Occurred
               </p>
-              <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+              <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
             </div>
-          )}
-
-          {/* Chat Window */}
-          <div
-            ref={scrollRef}
-            className="
-              flex-1 
-              overflow-y-auto 
-              overflow-x-hidden
-              px-4 sm:px-6 md:px-8
-              py-6 sm:py-8
-              rounded-3xl md:rounded-[2rem]
-              backdrop-blur-2xl
-              bg-white/40 dark:bg-slate-900/40
-              border border-white/30 dark:border-slate-700/30
-              overscroll-behavior-contain
-              -webkit-overflow-scrolling-touch
-              transition-all duration-500
-              animate-in fade-in zoom-in-95 duration-700 delay-100
-            "
-            style={{
-              minHeight: "60vh",
-              maxHeight: "calc(100% - 140px)",
-            }}
-          >
-            <div
-              className="
-                mx-auto 
-                w-full 
-                max-w-3xl 
-                py-3 md:py-4
-                flex flex-col 
-                gap-4 md:gap-5
-              "
+            <button
+              onClick={() => setError(null)}
+              className="text-red-400 hover:text-red-600 dark:hover:text-red-200 transition-colors"
             >
+              <svg className="size-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Chat Container - Redesigned with better spacing */}
+      <div className="flex-1 relative z-10 overflow-hidden">
+        <div
+          ref={scrollRef}
+          className="
+            h-full
+            overflow-y-auto
+            overflow-x-hidden
+            overscroll-behavior-contain
+            -webkit-overflow-scrolling-touch
+          "
+        >
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+            <div className="space-y-4 sm:space-y-6">
               {messages.map((m, idx) => (
                 <div
                   key={m.id}
-                  className="animate-in fade-in slide-in-from-bottom-3 duration-500"
-                  style={{ animationDelay: `${idx * 50}ms` }}
+                  className={cn(
+                    "animate-in fade-in slide-in-from-bottom-2 duration-500",
+                    "transition-all"
+                  )}
+                  style={{ animationDelay: `${Math.min(idx * 50, 300)}ms` }}
                 >
                   <MessageBubble message={m} onSpeak={speakText} />
-                  {m.response && <ResponseCard response={m.response} />}
+                  {m.response && (
+                    <div className="mt-3">
+                      <ResponseCard response={m.response} />
+                    </div>
+                  )}
                 </div>
               ))}
 
+              {/* Typing Indicator - Redesigned */}
               {isSending && (
-                <div className="flex items-center gap-2 px-4 py-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <div className="flex gap-1.5">
-                    <span
-                      className="w-2 h-2 bg-slate-400 dark:bg-slate-600 rounded-full animate-bounce"
-                      style={{ animationDelay: "0ms" }}
-                    />
-                    <span
-                      className="w-2 h-2 bg-slate-400 dark:bg-slate-600 rounded-full animate-bounce"
-                      style={{ animationDelay: "150ms" }}
-                    />
-                    <span
-                      className="w-2 h-2 bg-slate-400 dark:bg-slate-600 rounded-full animate-bounce"
-                      style={{ animationDelay: "300ms" }}
-                    />
+                <div className="flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="
+                    size-8 sm:size-10
+                    rounded-full
+                    bg-gradient-to-br from-blue-500 to-indigo-600
+                    flex items-center justify-center
+                    flex-shrink-0
+                  ">
+                    <span className="text-white font-bold text-xs sm:text-sm">H</span>
                   </div>
-                  <span className="text-sm text-slate-500 dark:text-slate-400 ml-2">
-                    Hynox is thinking...
-                  </span>
+                  <div className="
+                    mt-2
+                    px-4 py-3
+                    rounded-2xl rounded-tl-sm
+                    bg-white dark:bg-slate-800
+                    border border-slate-200 dark:border-slate-700
+                    shadow-sm
+                  ">
+                    <div className="flex items-center gap-1.5">
+                      <span className="size-2 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                      <span className="size-2 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                      <span className="size-2 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* Voice Visualizer */}
+      {/* Voice Visualizer - Redesigned position */}
       {listening && (
         <div
           className="
-            py-4 md:py-5 
-            px-4 sm:px-6 md:px-8 
-            fixed bottom-[120px] 
-            left-0 right-0 
-            z-30
-            backdrop-blur-2xl
-            bg-gradient-to-r from-white/80 via-blue-50/80 to-white/80
-            dark:from-slate-900/80 dark:via-blue-950/80 dark:to-slate-900/80
-            border-t border-b border-white/40 dark:border-slate-700/40
-            animate-in fade-in slide-in-from-bottom-4 duration-500
+            fixed bottom-24 sm:bottom-28
+            left-0 right-0
+            z-40
+            px-4 sm:px-6 lg:px-8
+            animate-in fade-in slide-in-from-bottom-4 duration-300
           "
         >
-          <VoiceVisualizer stream={stream} listening={listening} />
+          <div className="
+            max-w-2xl mx-auto
+            p-4 sm:p-6
+            backdrop-blur-2xl
+            bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-blue-500/10
+            dark:from-blue-500/20 dark:via-indigo-500/20 dark:to-blue-500/20
+            border border-blue-200/50 dark:border-blue-700/50
+            rounded-2xl
+            shadow-2xl shadow-blue-500/20
+          ">
+            <VoiceVisualizer stream={stream} listening={listening} />
+          </div>
         </div>
       )}
 
-      {/* Input Bar */}
+      {/* Input Bar - Completely Redesigned */}
       <div
         className="
           fixed 
           bottom-0 
           left-0 
           right-0
-          z-20
-          backdrop-blur-2xl
-          bg-white/80 dark:bg-slate-900/80
-          border-t border-white/40 dark:border-slate-700/40
-          pt-4 sm:pt-5
-          px-4 sm:px-6 md:px-8
-          transition-all duration-300
+          z-30
+          border-t border-slate-200/80 dark:border-slate-800/80
+          bg-white/95 dark:bg-slate-900/95
+          backdrop-blur-xl
         "
         style={{
-          paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + 16px)`,
+          paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + 12px)`,
         }}
       >
-        <div className="w-full max-w-4xl mx-auto">
-          <div
-            className="
-              flex items-center gap-3
-              rounded-3xl
-              backdrop-blur-xl
-              bg-white/90 dark:bg-slate-800/90
-              border border-slate-200/50 dark:border-slate-700/50
-              p-2.5 sm:p-3
-              ring-1 ring-inset ring-slate-200/20 dark:ring-slate-700/20
-              transition-all duration-300
-              hover:border-blue-300/50 dark:hover:border-blue-700/50
-              focus-within:ring-2 focus-within:ring-blue-500/20 dark:focus-within:ring-blue-400/20
-              focus-within:border-blue-400 dark:focus-within:border-blue-600
-              focus-within:scale-[1.01]
-            "
-          >
-            <input
-              ref={inputRef}
-              className={cn(
-                "flex-1 bg-transparent px-4 py-3 text-sm sm:text-base outline-none",
-                "placeholder:text-slate-400 dark:placeholder:text-slate-500",
-                "text-slate-900 dark:text-white",
-                "transition-all duration-200"
-              )}
-              type="text"
-              placeholder="Type your message…"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend();
-                }
-              }}
-              disabled={isSending || listening}
-              aria-label="Message input"
-            />
-
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="relative">
-                {isConnected ? (
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <button
-                        className="
-                          inline-flex items-center justify-center
-                          size-12 sm:size-11
-                          rounded-2xl
-                          text-slate-700 dark:text-slate-300
-                          bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800
-                          hover:from-slate-300 hover:to-slate-400 dark:hover:from-slate-600 dark:hover:to-slate-700
-                          transition-all duration-300
-                          hover:scale-105 active:scale-95
-                        "
-                        aria-label="Connected file options"
-                        title="Connected file"
-                      >
-                        {isConnected ? (
-                          <ExcelIcon size={22} />
-                        ) : (
-                          <AttachmentIcon size={22} />
-                        )}
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-64 sm:w-72" align="end">
-                      <div className="space-y-4">
-                        <div className="space-y-1">
-                          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                            Connected File
-                          </p>
-                          <p
-                            className="text-sm font-bold text-slate-900 dark:text-white break-words"
-                            title={fileName || ""}
-                          >
-                            {fileName}
-                          </p>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <Button
-                            variant="outline"
-                            onClick={handleRemoveConnection}
-                            disabled={isRemoving}
-                            className="w-full"
-                          >
-                            {isRemoving ? "Removing..." : "Remove"}
-                          </Button>
-                          <Button
-                            onClick={handleConnectAgain}
-                            disabled={isRemoving}
-                            className="w-full"
-                          >
-                            Switch File
-                          </Button>
-                        </div>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                ) : (
-                  <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="
-                      inline-flex items-center justify-center
-                      size-12 sm:size-11
-                      rounded-2xl
-                      text-slate-700 dark:text-slate-300
-                      bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800
-                      hover:from-slate-300 hover:to-slate-400 dark:hover:from-slate-600 dark:hover:to-slate-700
-                      transition-all duration-300
-                      hover:scale-105 active:scale-95
-                    "
-                    aria-label="Connect a file"
-                    title="Connect a file"
-                  >
-                    <AttachmentIcon size={22} />
-                  </button>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={handleSend}
-                disabled={!text.trim() || isSending || listening}
-                className="
-                  inline-flex items-center justify-center
-                  rounded-2xl
-                  px-5 py-3
-                  text-sm font-semibold
-                  bg-gradient-to-r from-blue-500 to-indigo-600
-                  hover:from-blue-600 hover:to-indigo-700
-                  text-white
-                  disabled:opacity-50 disabled:cursor-not-allowed
-                  transition-all duration-300
-                  hover:scale-105
-                  active:scale-95
-                "
-                aria-label="Send message"
-                title="Send"
-              >
-                <ArrowIcon />
-              </button>
-
-              <button
-                type="button"
-                onClick={startListening}
-                disabled={isSending}
-                className={cn(
-                  "size-12 sm:size-11 rounded-2xl flex items-center justify-center",
-                  "transition-all duration-300",
-                  "hover:scale-105 active:scale-95",
-                  listening
-                    ? "bg-gradient-to-br from-red-500 to-rose-600 text-white animate-pulse"
-                    : "bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 text-slate-700 dark:text-slate-300 hover:from-slate-300 hover:to-slate-400 dark:hover:from-slate-600 dark:hover:to-slate-700"
-                )}
-                aria-label={listening ? "Stop listening" : "Start listening"}
-                title={listening ? "Stop listening" : "Start listening"}
-              >
-                <MicIcon size={22} />
-              </button>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 sm:pt-4">
+          {/* Connection Status Banner - Mobile */}
+          {isConnected && fileName && (
+            <div className="
+              md:hidden
+              flex items-center gap-2
+              px-3 py-2
+              mb-3
+              rounded-lg
+              bg-green-50 dark:bg-green-950/30
+              border border-green-200 dark:border-green-800/50
+            ">
+              <div className="size-2 rounded-full bg-green-500" />
+              <span className="text-xs font-medium text-green-700 dark:text-green-400 truncate flex-1">
+                {fileName}
+              </span>
             </div>
+          )}
+
+          {/* Input Container */}
+          <div className="
+            flex items-end gap-2 sm:gap-3
+            p-2 sm:p-2.5
+            rounded-2xl
+            bg-slate-50 dark:bg-slate-800/50
+            border border-slate-200 dark:border-slate-700
+            transition-all duration-200
+            focus-within:border-blue-400 dark:focus-within:border-blue-600
+            focus-within:ring-2 focus-within:ring-blue-400/20 dark:focus-within:ring-blue-600/20
+            hover:border-slate-300 dark:hover:border-slate-600
+          ">
+            {/* Attachment Button */}
+            <button
+              onClick={() => setIsModalOpen(true)}
+              disabled={listening || isSending}
+              className={cn(
+                "flex-shrink-0",
+                "size-9 sm:size-10",
+                "rounded-xl",
+                "flex items-center justify-center",
+                "transition-all duration-200",
+                "hover:scale-105 active:scale-95",
+                isConnected
+                  ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30"
+                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
+              )}
+              aria-label={isConnected ? "Connected file" : "Attach file"}
+            >
+              {isConnected ? <ExcelIcon size={20} /> : <AttachmentIcon size={20} />}
+            </button>
+
+            {/* Text Input */}
+            <div className="flex-1 min-w-0">
+              <input
+                ref={inputRef}
+                className={cn(
+                  "w-full",
+                  "bg-transparent",
+                  "px-2 py-2.5 sm:py-3",
+                  "text-sm sm:text-base",
+                  "text-slate-900 dark:text-white",
+                  "placeholder:text-slate-400 dark:placeholder:text-slate-500",
+                  "outline-none",
+                  "transition-all duration-200"
+                )}
+                type="text"
+                placeholder={listening ? "Listening..." : "Type your message..."}
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
+                disabled={isSending || listening}
+                aria-label="Message input"
+              />
+            </div>
+
+            {/* Voice Button */}
+            <button
+              type="button"
+              onClick={startListening}
+              disabled={isSending}
+              className={cn(
+                "flex-shrink-0",
+                "size-9 sm:size-10",
+                "rounded-xl",
+                "flex items-center justify-center",
+                "transition-all duration-200",
+                "hover:scale-105 active:scale-95",
+                listening
+                  ? "bg-red-500 text-white animate-pulse shadow-lg shadow-red-500/50"
+                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
+              )}
+              aria-label={listening ? "Stop listening" : "Start voice input"}
+            >
+              <MicIcon size={20} />
+            </button>
+
+            {/* Send Button */}
+            <button
+              type="button"
+              onClick={handleSend}
+              disabled={!text.trim() || isSending || listening}
+              className={cn(
+                "flex-shrink-0",
+                "size-9 sm:size-10",
+                "rounded-xl",
+                "flex items-center justify-center",
+                "bg-gradient-to-r from-blue-500 to-indigo-600",
+                "text-white",
+                "transition-all duration-200",
+                "hover:scale-105 active:scale-95",
+                "hover:shadow-lg hover:shadow-blue-500/50",
+                "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none"
+              )}
+              aria-label="Send message"
+            >
+              <ArrowIcon />
+            </button>
           </div>
 
-          <p className="mt-3 text-center text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium transition-all duration-300">
+          {/* Helper Text */}
+          <p className="
+            mt-2 sm:mt-3
+            text-center
+            text-xs
+            text-slate-500 dark:text-slate-400
+          ">
             Press{" "}
-            <kbd className="px-2 py-1 mx-1 rounded-md bg-slate-200 dark:bg-slate-800 font-mono text-xs">
+            <kbd className="
+              px-1.5 py-0.5 mx-0.5
+              rounded
+              bg-slate-200 dark:bg-slate-700
+              text-slate-700 dark:text-slate-300
+              font-mono text-[10px]
+              border border-slate-300 dark:border-slate-600
+            ">
               Enter
             </kbd>{" "}
-            to send • Tap mic to speak
+            to send • Click mic to speak
           </p>
         </div>
       </div>
@@ -738,18 +824,14 @@ export default function Page() {
 
       <style jsx global>{`
         @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
 
         @keyframes slideInFromTop {
           from {
             opacity: 0;
-            transform: translateY(-16px);
+            transform: translateY(-12px);
           }
           to {
             opacity: 1;
@@ -760,33 +842,11 @@ export default function Page() {
         @keyframes slideInFromBottom {
           from {
             opacity: 0;
-            transform: translateY(16px);
+            transform: translateY(12px);
           }
           to {
             opacity: 1;
             transform: translateY(0);
-          }
-        }
-
-        @keyframes slideInFromRight {
-          from {
-            opacity: 0;
-            transform: translateX(16px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-
-        @keyframes zoomIn {
-          from {
-            opacity: 0;
-            transform: scale(0.95);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
           }
         }
 
@@ -802,59 +862,31 @@ export default function Page() {
           animation-name: slideInFromTop;
         }
 
-        .slide-in-from-top-2 {
-          animation-name: slideInFromTop;
-          animation-duration: 0.3s;
-        }
-
         .slide-in-from-bottom-4 {
           animation-name: slideInFromBottom;
         }
 
-        .slide-in-from-bottom-3 {
-          animation-name: slideInFromBottom;
-          animation-duration: 0.5s;
-        }
-
         .slide-in-from-bottom-2 {
           animation-name: slideInFromBottom;
-          animation-duration: 0.3s;
-        }
-
-        .slide-in-from-right-4 {
-          animation-name: slideInFromRight;
-        }
-
-        .zoom-in-95 {
-          animation-name: zoomIn;
+          animation-duration: 0.4s;
         }
 
         .duration-300 {
           animation-duration: 300ms;
         }
 
+        .duration-400 {
+          animation-duration: 400ms;
+        }
+
         .duration-500 {
           animation-duration: 500ms;
         }
 
-        .duration-700 {
-          animation-duration: 700ms;
-        }
-
-        .delay-100 {
-          animation-delay: 100ms;
-        }
-
-        .delay-500 {
-          animation-delay: 500ms;
-        }
-
-        .delay-1000 {
-          animation-delay: 1000ms;
-        }
-
+        /* Custom Scrollbar */
         ::-webkit-scrollbar {
-          width: 8px;
+          width: 6px;
+          height: 6px;
         }
 
         ::-webkit-scrollbar-track {
@@ -862,13 +894,13 @@ export default function Page() {
         }
 
         ::-webkit-scrollbar-thumb {
-          background: rgba(148, 163, 184, 0.4);
-          border-radius: 9999px;
-          transition: background 0.3s ease;
+          background: rgba(148, 163, 184, 0.3);
+          border-radius: 10px;
+          transition: background 0.2s ease;
         }
 
         ::-webkit-scrollbar-thumb:hover {
-          background: rgba(148, 163, 184, 0.6);
+          background: rgba(148, 163, 184, 0.5);
         }
 
         .dark ::-webkit-scrollbar-thumb {
@@ -877,6 +909,16 @@ export default function Page() {
 
         .dark ::-webkit-scrollbar-thumb:hover {
           background: rgba(71, 85, 105, 0.6);
+        }
+
+        /* Firefox Scrollbar */
+        * {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
+        }
+
+        .dark * {
+          scrollbar-color: rgba(71, 85, 105, 0.4) transparent;
         }
       `}</style>
     </main>
