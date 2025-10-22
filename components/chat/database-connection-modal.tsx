@@ -21,7 +21,6 @@ interface DatabaseConnectionModalProps {
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export function DatabaseConnectionModal({
@@ -167,8 +166,6 @@ export function DatabaseConnectionModal({
 
   const resetModal = () => {
     setSelectedFile(null);
-    localStorage.removeItem("hynox_excel_file_url");
-    localStorage.removeItem("hynox_excel_file_name");
     setError(null);
     setUploadProgress(0);
     setIsDragging(false);
@@ -191,37 +188,100 @@ export function DatabaseConnectionModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[520px] backdrop-blur-2xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/50 dark:border-slate-700/50">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
+      <DialogContent 
+        className="
+          w-[calc(100vw-2rem)] max-w-lg
+          p-0
+          gap-0
+          bg-white dark:bg-slate-900
+          border border-slate-200 dark:border-slate-800
+          rounded-2xl
+          shadow-2xl
+          max-h-[90vh] sm:max-h-[85vh]
+          flex flex-col
+        "
+      >
+        {/* Header - Fixed */}
+        <DialogHeader className="
+          px-4 sm:px-6 
+          pt-5 sm:pt-6 
+          pb-4 sm:pb-5
+          border-b border-slate-200 dark:border-slate-800
+          flex-shrink-0
+        ">
+          <DialogTitle className="
+            text-xl sm:text-2xl 
+            font-bold 
+            text-slate-900 dark:text-white
+            mb-1.5 sm:mb-2
+          ">
             Connect Your Data
           </DialogTitle>
-          <DialogDescription className="text-slate-600 dark:text-slate-400 text-base">
-            Upload an Excel file (.xlsx, .xls, .csv) to connect with Hynox AI
+          <DialogDescription className="
+            text-sm sm:text-base 
+            text-slate-600 dark:text-slate-400
+            leading-relaxed
+          ">
+            Upload an Excel file to start analyzing your data
           </DialogDescription>
         </DialogHeader>
 
-        <div className="py-6">
-          {/* Drag and Drop Zone */}
+        {/* Scrollable Content Area */}
+        <div className="
+          flex-1 
+          overflow-y-auto 
+          px-4 sm:px-6 
+          py-4 sm:py-5
+          overscroll-behavior-contain
+        ">
+          {/* File Type Info Banner */}
+          <div className="
+            mb-4
+            p-3 sm:p-3.5
+            rounded-lg
+            bg-blue-50 dark:bg-blue-950/30
+            border border-blue-200 dark:border-blue-800/50
+          ">
+            <div className="flex items-start gap-2.5">
+              <svg 
+                className="size-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">
+                  Supported Formats
+                </p>
+                <p className="text-xs text-blue-700 dark:text-blue-300">
+                  .xlsx, .xls, .csv • Max 10MB
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Upload Zone */}
           <div
             onDragEnter={handleDragEnter}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
+            onClick={handleBrowseClick}
             className={cn(
               "relative",
-              "rounded-2xl",
+              "rounded-xl sm:rounded-2xl",
               "border-2 border-dashed",
               "transition-all duration-300",
-              "min-h-[240px]",
-              "flex flex-col items-center justify-center",
               "cursor-pointer",
-              "backdrop-blur-sm",
+              "touch-manipulation", // Better mobile interaction
               isDragging
-                ? "border-blue-500 dark:border-blue-400 bg-blue-50/50 dark:bg-blue-950/30 scale-[1.02]"
-                : "border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/30 dark:hover:bg-blue-950/20"
+                ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-950/30 scale-[1.01]"
+                : selectedFile
+                ? "border-green-500 dark:border-green-400 bg-green-50 dark:bg-green-950/30"
+                : "border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 active:bg-slate-100 dark:active:bg-slate-800/50"
             )}
-            onClick={handleBrowseClick}
           >
             <input
               ref={fileInputRef}
@@ -233,17 +293,27 @@ export function DatabaseConnectionModal({
             />
 
             {!selectedFile ? (
-              <div className="flex flex-col items-center gap-4 px-6 py-8">
+              <div className="
+                flex flex-col items-center 
+                px-4 sm:px-6 
+                py-8 sm:py-10 
+                text-center
+              ">
+                {/* Upload Icon */}
                 <div
                   className={cn(
-                    "w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300",
+                    "size-14 sm:size-16",
+                    "rounded-xl sm:rounded-2xl",
+                    "flex items-center justify-center",
+                    "mb-4",
+                    "transition-all duration-300",
                     isDragging
-                      ? "bg-blue-500 dark:bg-blue-600 scale-110"
+                      ? "bg-blue-500 scale-110"
                       : "bg-gradient-to-br from-blue-500 to-indigo-600"
                   )}
                 >
                   <svg
-                    className="w-8 h-8 text-white"
+                    className="size-7 sm:size-8 text-white"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -257,97 +327,176 @@ export function DatabaseConnectionModal({
                   </svg>
                 </div>
 
-                <div className="text-center">
-                  <p className="text-lg font-semibold text-slate-900 dark:text-white mb-1">
-                    {isDragging
-                      ? "Drop your file here"
-                      : "Drag & drop your file"}
+                {/* Text Content */}
+                <div>
+                  <p className="
+                    text-base sm:text-lg 
+                    font-semibold 
+                    text-slate-900 dark:text-white 
+                    mb-1.5 sm:mb-2
+                  ">
+                    {isDragging ? "Drop file here" : "Choose a file"}
                   </p>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
-                    or click to browse
+                  <p className="
+                    text-sm sm:text-base 
+                    text-slate-600 dark:text-slate-400 
+                    mb-3
+                  ">
+                    Drag & drop or tap to browse
                   </p>
-                  <p className="text-xs text-slate-400 dark:text-slate-500">
-                    Supported formats: .xlsx, .xls, .csv (Max 10MB)
-                  </p>
+                  
+                  {/* Mobile-Friendly Button */}
+                  <button
+                    type="button"
+                    className="
+                      inline-flex items-center gap-2
+                      px-4 sm:px-5 
+                      py-2 sm:py-2.5
+                      rounded-lg
+                      bg-slate-200 dark:bg-slate-800
+                      hover:bg-slate-300 dark:hover:bg-slate-700
+                      text-sm font-medium
+                      text-slate-700 dark:text-slate-300
+                      transition-colors duration-200
+                      touch-manipulation
+                    "
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleBrowseClick();
+                    }}
+                  >
+                    <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                    </svg>
+                    Browse Files
+                  </button>
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col items-center gap-4 px-6 py-8 w-full">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center animate-in zoom-in-95 duration-300">
-                  <svg
-                    className="w-8 h-8 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
-                </div>
+              <div className="
+                px-4 sm:px-6 
+                py-6 sm:py-8
+              ">
+                {/* File Selected State */}
+                <div className="flex flex-col items-center text-center">
+                  {/* Success Icon */}
+                  <div className="
+                    size-14 sm:size-16 
+                    rounded-xl sm:rounded-2xl 
+                    bg-gradient-to-br from-green-500 to-emerald-600
+                    flex items-center justify-center 
+                    mb-4
+                    animate-in zoom-in-95 duration-300
+                  ">
+                    <svg
+                      className="size-7 sm:size-8 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                  </div>
 
-                <div className="text-center w-full">
-                  <p className="text-base font-semibold text-slate-900 dark:text-white mb-1 truncate px-4">
+                  {/* File Info */}
+                  <p className="
+                    text-sm sm:text-base 
+                    font-semibold 
+                    text-slate-900 dark:text-white 
+                    mb-1
+                    break-all
+                    px-2
+                  ">
                     {selectedFile.name}
                   </p>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                  <p className="
+                    text-xs sm:text-sm 
+                    text-slate-500 dark:text-slate-400
+                    mb-4
+                  ">
                     {formatFileSize(selectedFile.size)}
                   </p>
 
+                  {/* Progress Bar */}
                   {loading && (
-                    <div className="mt-4 w-full max-w-xs mx-auto">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs text-slate-600 dark:text-slate-400">
+                    <div className="w-full mb-4 animate-in fade-in duration-300">
+                      <div className="flex items-center justify-between mb-2 px-1">
+                        <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                           Uploading...
                         </span>
-                        <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">
+                        <span className="text-xs sm:text-sm font-bold text-blue-600 dark:text-blue-400">
                           {uploadProgress}%
                         </span>
                       </div>
-                      <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                      <div className="
+                        w-full h-2 sm:h-2.5
+                        bg-slate-200 dark:bg-slate-700 
+                        rounded-full 
+                        overflow-hidden
+                      ">
                         <div
-                          className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-300 ease-out"
+                          className="
+                            h-full 
+                            bg-gradient-to-r from-blue-500 to-indigo-600 
+                            transition-all duration-300 ease-out
+                            rounded-full
+                          "
                           style={{ width: `${uploadProgress}%` }}
                         />
                       </div>
                     </div>
                   )}
 
+                  {/* Remove Button */}
                   {!loading && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
+                    <button
                       onClick={(e) => {
                         e.stopPropagation();
                         resetModal();
                       }}
-                      className="mt-3 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30"
+                      className="
+                        inline-flex items-center gap-2
+                        px-4 py-2
+                        rounded-lg
+                        text-sm font-medium
+                        text-red-600 dark:text-red-400
+                        hover:bg-red-50 dark:hover:bg-red-950/30
+                        transition-colors duration-200
+                        touch-manipulation
+                      "
                     >
-                      Remove file
-                    </Button>
+                      <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      Remove File
+                    </button>
                   )}
                 </div>
               </div>
             )}
           </div>
 
-          {/* Error Message */}
+          {/* Error Alert */}
           {error && (
             <div
               className="
-                mt-4 p-3 
-                rounded-xl 
-                bg-red-50 dark:bg-red-950/30 
+                mt-4
+                p-3 sm:p-3.5
+                rounded-lg
+                bg-red-50 dark:bg-red-950/30
                 border border-red-200 dark:border-red-800/50
                 animate-in fade-in slide-in-from-top-2 duration-300
               "
+              role="alert"
             >
-              <p className="text-sm text-red-700 dark:text-red-400 flex items-center gap-2">
+              <div className="flex items-start gap-2.5">
                 <svg
-                  className="w-4 h-4 flex-shrink-0"
+                  className="size-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -357,24 +506,34 @@ export function DatabaseConnectionModal({
                     clipRule="evenodd"
                   />
                 </svg>
-                {error}
-              </p>
+                <p className="text-xs sm:text-sm text-red-700 dark:text-red-400 flex-1">
+                  {error}
+                </p>
+              </div>
             </div>
           )}
         </div>
 
-        <DialogFooter className="flex gap-3">
+        {/* Footer - Fixed */}
+        <DialogFooter className="
+          px-4 sm:px-6 
+          py-4 sm:py-5
+          border-t border-slate-200 dark:border-slate-800
+          flex-shrink-0
+          gap-2 sm:gap-3
+          flex-row
+          justify-end
+        ">
           <Button
             onClick={onClose}
             variant="outline"
             disabled={loading}
             className="
               flex-1 sm:flex-none
-              backdrop-blur-sm
-              bg-white/50 dark:bg-slate-800/50
-              border-slate-200 dark:border-slate-700
-              hover:bg-slate-100 dark:hover:bg-slate-800
-              transition-all duration-300
+              min-w-[100px]
+              h-10 sm:h-11
+              text-sm sm:text-base
+              touch-manipulation
             "
           >
             Cancel
@@ -384,19 +543,18 @@ export function DatabaseConnectionModal({
             disabled={!selectedFile || loading}
             className="
               flex-1 sm:flex-none
+              min-w-[120px]
+              h-10 sm:h-11
+              text-sm sm:text-base
               bg-gradient-to-r from-blue-500 to-indigo-600
               hover:from-blue-600 hover:to-indigo-700
-              text-white font-semibold
               disabled:opacity-50
-              disabled:cursor-not-allowed
-              transition-all duration-300
-              hover:scale-105
-              active:scale-95
+              touch-manipulation
             "
           >
             {loading ? (
               <span className="flex items-center gap-2">
-                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                <svg className="animate-spin size-4" viewBox="0 0 24 24">
                   <circle
                     className="opacity-25"
                     cx="12"
@@ -412,10 +570,14 @@ export function DatabaseConnectionModal({
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   />
                 </svg>
-                Uploading...
+                <span className="hidden xs:inline">Uploading...</span>
+                <span className="xs:hidden">{uploadProgress}%</span>
               </span>
             ) : (
-              "Upload & Connect"
+              <>
+                <span className="hidden sm:inline">Upload & Connect</span>
+                <span className="sm:hidden">Upload</span>
+              </>
             )}
           </Button>
         </DialogFooter>
