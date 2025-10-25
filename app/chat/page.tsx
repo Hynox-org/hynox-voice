@@ -574,7 +574,14 @@ export default function Page() {
             -webkit-overflow-scrolling-touch
           "
         >
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+          <div
+            className={cn(
+              "max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8",
+              listening
+                ? "pb-[calc(184px+env(safe-area-inset-bottom))]"
+                : "pb-[calc(124px+env(safe-area-inset-bottom))]"
+            )}
+          >
             <div className="space-y-4 sm:space-y-6">
               {messages.map((m, idx) => (
                 <div
