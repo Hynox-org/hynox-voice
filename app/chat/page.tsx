@@ -563,7 +563,7 @@ export default function Page() {
       )}
 
       {/* Chat Container - Redesigned with better spacing */}
-      <div className="flex-1 relative z-10 overflow-hidden">
+      <div className="flex-1 relative z-10 overflow-hidden py-10">
         <div
           ref={scrollRef}
           className="
@@ -649,11 +649,7 @@ export default function Page() {
             max-w-2xl mx-auto
             p-4 sm:p-6
             backdrop-blur-2xl
-            bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-blue-500/10
-            dark:from-blue-500/20 dark:via-indigo-500/20 dark:to-blue-500/20
-            border border-blue-200/50 dark:border-blue-700/50
             rounded-2xl
-            shadow-2xl shadow-blue-500/20
           ">
             <VoiceVisualizer stream={stream} listening={listening} />
           </div>
@@ -708,25 +704,58 @@ export default function Page() {
             hover:border-slate-300 dark:hover:border-slate-600
           ">
             {/* Attachment Button */}
-            <button
-              onClick={() => setIsModalOpen(true)}
-              disabled={listening || isSending}
-              className={cn(
-                "flex-shrink-0",
-                "size-9 sm:size-10",
-                "rounded-xl",
-                "flex items-center justify-center",
-                "transition-all duration-200",
-                "hover:scale-105 active:scale-95",
-                isConnected
-                  ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30"
-                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
-              )}
-              aria-label={isConnected ? "Connected file" : "Attach file"}
-            >
-              {isConnected ? <ExcelIcon size={20} /> : <AttachmentIcon size={20} />}
-            </button>
-
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  disabled={listening || isSending}
+                  className={cn(
+                    "flex-shrink-0",
+                    "size-9 sm:size-10",
+                    "rounded-xl",
+                    "flex items-center justify-center",
+                    "transition-all duration-200",
+                    "hover:scale-105 active:scale-95",
+                    isConnected
+                      ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30"
+                      : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
+                  )}
+                  aria-label={isConnected ? "Connected file" : "Attach file"}
+                >
+                  {isConnected ? <ExcelIcon size={20} /> : <AttachmentIcon size={20} />}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64" align="start">
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+                      Active Connection
+                    </p>
+                    <p className="text-sm font-medium text-slate-900 dark:text-white mb-3 break-words">
+                      {fileName}
+                    </p>
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRemoveConnection}
+                        disabled={isRemoving}
+                        className="w-full"
+                      >
+                        {isRemoving ? "Removing..." : "Disconnect"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => setIsModalOpen(true)}
+                        disabled={isRemoving}
+                        className="w-full"
+                      >
+                        Switch File
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
             {/* Text Input */}
             <div className="flex-1 min-w-0">
               <input
